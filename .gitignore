@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# tags files
+Zeltron3D/tags
