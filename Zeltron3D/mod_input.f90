@@ -81,7 +81,8 @@ LOGICAL, PARAMETER, PUBLIC :: TEST_RESTORE = .FALSE.
 ! Specify the boundary conditions for the fields:
 ! 1. "PERIODIC": Periodic boundary conditions
 ! 2. "METAL": Perfect metal with infinite conductivity
-
+! 3. "NOZZLE": Impose B-line rotation across a conducting nozzle
+!   NOZZLE only supported for [X|Y|Z]MIN boundaries !!
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMIN="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMAX="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_YMIN="PERIODIC"
@@ -93,13 +94,23 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMAX="PERIODIC"
 ! 1. "PERIODIC": Periodic boundary conditions
 ! 2. "REFLECT": Particles are elastically reflected at the wall
 ! 3. "ABSORB": Particles are absorbed at the wall
-
+! 4. "NOZZLE": Inject particles across the NOZZLE where field-
+!     -line rotation is imposed
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_XMIN="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_XMAX="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_YMIN="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_YMAX="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_ZMIN="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_ZMAX="PERIODIC"
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!++++++++++++++++++++++++ INITIAL CONDITIONS +++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! 1. "RECONN": Initial reconnection fields
+! 2. "UNIFORM": Initial uniform \vec{B} = B_0 \hat{z}
+! 3. "MONOPOLE": Place magnetic monopole on z-axis below zmin
+!     Strength of B-field at (xmin, ymin, zmin) is B_0
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="RECONN"
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++ INPUT PARAMETERS ++++++++++++++++++++++++++
@@ -244,6 +255,25 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: udemin=-1d2,udemax=1d2
 DOUBLE PRECISION, PARAMETER, PUBLIC :: udpmin=-1d2,udpmax=1d2
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Extra parameters for BOUND_FIELD_[X|Y|Z]MIN = "NOZZLE"
+! This might only be implemented for BOUND_FIELD_ZMIN="NOZZLE"
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Light cylinder radius defined by nozzle solid-body rotation
+DOUBLE PRECISION, PARAMETER, PUBLIC :: rlc=30*rhoc
+! Nozzle radius
+! (in plane perp. to the coord. for which BOUND_FIELD_MIN = "NOZZLE")
+DOUBLE PRECISION, PARAMETER, PUBLIC :: rnozzle=0.9*rlc
+! Nozzle is shut off at rnozzle across half-thickness delta_nozzle
+! Nozzle ang. freq. is omega = 0.5*c/rlc*(1.0-TANH((R-rnozzle)/delta_nozzle))
+DOUBLE PRECISION, PARAMETER, PUBLIC :: delta_nozzle=0.1*rnozzle
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Extra parameters for INIT="MONOPOLE"
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! The location, (0,0,zmp), where the monopole is placed
+DOUBLE PRECISION, PARAMETER, PUBLIC :: zmp=zmin-rlc
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !++++++++++++++++++++++ DEFINE PARTICLE ARRAYS +++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -289,6 +319,17 @@ INTEGER*8, ALLOCATABLE, PUBLIC        :: tagpb(:)
 DOUBLE PRECISION, ALLOCATABLE, PUBLIC :: pcl_f(:,:)
 DOUBLE PRECISION, ALLOCATABLE, PUBLIC :: pcl_data_f(:,:)
 INTEGER*8, ALLOCATABLE, PUBLIC        :: tagf(:)
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++ INITIAL FIELD ARRAYS ++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! INITIAL Magnetic and Electric fields components Yee lattice
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx0,By0,Bz0
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex0,Ey0,Ez0
+
+! INITIAL Magnetic and Electric fields components at nodes
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bxg0,Byg0,Bzg0
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Exg0,Eyg0,Ezg0
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++ ANALYSIS ++++++++++++++++++++++++++++++
