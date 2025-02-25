@@ -33,3 +33,6 @@
 
 # tags files
 Zeltron3D/tags
+
+# vim files
+*/.*.swp

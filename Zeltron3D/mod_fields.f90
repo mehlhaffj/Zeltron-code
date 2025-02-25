@@ -136,8 +136,31 @@ DEALLOCATE(bufS1,bufR1)
 DEALLOCATE(bufS2,bufR2)
 
 !***********************************************************************
+! JM note on boundary conditions:
+! Following convention for pulsar simulations, here a metallic boundary
+! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
+!
+! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
+! This basically means that no matter where the conductor is, we need to
+! set one full cell's worth of field values.
+!***********************************************************************
+!***********************************************************************
 ! Check boundary conditions along X
   
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ex(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ex(1,:,:)=Ex0(1,:,:)
+   END IF
+
+END IF
+
 IF (xmaxp.EQ.xmax) THEN
 
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
@@ -153,8 +176,13 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ex(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ex(:,1,:)=Ex0(:,1,:)
    END IF
    
 END IF
@@ -174,8 +202,13 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ex(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ex(:,:,1)=Ex0(:,:,1)
    END IF
    
 END IF
@@ -239,8 +272,13 @@ DEALLOCATE(bufS2,bufR2)
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ey(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ey(1,:,:)=Ey0(1,:,:)
    END IF
    
 END IF
@@ -257,6 +295,20 @@ END IF
 !***********************************************************************
 ! Check boundary conditions along Y
 
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ey(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ey(:,1,:)=Ey0(:,1,:)
+   END IF
+
+END IF
+
 IF (ymaxp.EQ.ymax) THEN
 
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
@@ -272,8 +324,13 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ey(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ey(:,:,1)=Ey0(:,:,1)
    END IF
    
 END IF
@@ -337,8 +394,13 @@ DEALLOCATE(bufS2,bufR2)
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ez(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ez(1,:,:)=Ez0(1,:,:)
    END IF
       
 END IF
@@ -358,8 +420,13 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
+   ! Parallel to, and inside of, conductor surface
    Ez(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ez(:,1,:)=Ez0(:,1,:)
    END IF
    
 END IF
@@ -375,6 +442,20 @@ END IF
 
 !***********************************************************************
 ! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ez(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ez(:,:,1)=Ez0(:,:,1)
+   END IF
+
+END IF
 
 IF (zmaxp.EQ.zmax) THEN
 
@@ -488,13 +569,27 @@ DEALLOCATE(bufS1,bufR1)
 DEALLOCATE(bufS2,bufR2)
 
 !***********************************************************************
+! JM note on boundary conditions:
+! Following convention for pulsar simulations, here a metallic boundary
+! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
+!
+! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
+! This basically means that no matter where the conductor is, we need to
+! set one full cell's worth of field values.
+!***********************************************************************
+!***********************************************************************
 ! Check boundary conditions along X
    
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
+   ! Normal to, and inside of, conductor surface
    Bx(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, nozzle surface
+   Bx(1,:,:)=Bx0(1,:,:)
    END IF
    
 END IF
@@ -511,6 +606,20 @@ END IF
 !***********************************************************************
 ! Check boundary conditions along Y
 
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bx(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   Bx(:,1,:)=Bx0(:,1,:)
+   END IF
+
+END IF
+
 IF (ymaxp.EQ.ymax) THEN
 
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
@@ -522,6 +631,20 @@ END IF
 
 !***********************************************************************
 ! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bx(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   Bx(:,:,1)=Bx0(:,:,1)
+   END IF
+
+END IF
 
 IF (zmaxp.EQ.zmax) THEN
 
@@ -579,6 +702,20 @@ DEALLOCATE(bufS2,bufR2)
 !***********************************************************************
 ! Check boundary conditions along X
 
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   By(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   By(1,:,:)=By0(1,:,:)
+   END IF
+
+END IF
+
 IF (xmaxp.EQ.xmax) THEN
    
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
@@ -594,8 +731,13 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
+   ! Normal to, and inside of, conductor surface
    By(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, nozzle surface
+   By(:,1,:)=By0(:,1,:)
    END IF
    
 END IF
@@ -611,6 +753,20 @@ END IF
 
 !***********************************************************************
 ! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   By(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   By(:,:,1)=By0(:,:,1)
+   END IF
+
+END IF
 
 IF (zmaxp.EQ.zmax) THEN
    
@@ -668,6 +824,20 @@ DEALLOCATE(bufS2,bufR2)
 !***********************************************************************
 ! Check boundary conditions along X
    
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bz(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   Bz(1,:,:)=Bz0(1,:,:)
+   END IF
+
+END IF
+
 IF (xmaxp.EQ.xmax) THEN
 
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
@@ -679,6 +849,20 @@ END IF
    
 !***********************************************************************
 ! Check boundary conditions along Y
+
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bz(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Tangent to nozzle surface
+   Bz(:,1,:)=Bz0(:,1,:)
+   END IF
+
+END IF
 
 IF (ymaxp.EQ.ymax) THEN
 
@@ -695,8 +879,13 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
+   ! Normal to, and inside of, conductor surface
    Bz(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, nozzle surface
+   Bz(:,:,1)=Bz0(:,:,1)
    END IF
    
 END IF
@@ -819,18 +1008,42 @@ ENDDO
 Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+bufR2(:,1)+bufR3(:))/4.0
    
 !***********************************************************************
+! JM note on boundary conditions:
+! Following convention for pulsar simulations, here a metallic boundary
+! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
+!
+! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
+!***********************************************************************
+!***********************************************************************
 ! Check boundary conditions along Y
 
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
 
-   DO iz=2,NZP
-   Bxg(:,1,iz)=(Bx(:,1,iz)+0.0+Bx(:,1,iz-1)+0.0)/4.0
-   ENDDO
-   
-   Bxg(:,1,1)=(Bx(:,1,1)+0.0+BufR2(:,1)+0.0)/4.0
+   ! DO iz=2,NZP
+   ! Bxg(:,1,iz)=(Bx(:,1,iz)+0.0+Bx(:,1,iz-1)+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Bxg(:,1,1)=(Bx(:,1,1)+0.0+BufR2(:,1)+0.0)/4.0
+
+   ! Parallel to, and inside of, conductor surface
+   Bxg(:,1,:)=0.0
       
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Bxg(:,1,:)=Bxg0(:,1,:)
+   END IF
+
+END IF
+
+IF (ymaxp.EQ.ymax) THEN
+
+   IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface 
+   Bxg(:,NYP,:)=0.0
    END IF
 
 END IF
@@ -842,14 +1055,31 @@ IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
    
-   DO iy=2,NYP
-   Bxg(:,iy,1)=(Bx(:,iy,1)+Bx(:,iy-1,1)+0.0+0.0)/4.0
-   ENDDO
-   
-   Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+0.0+0.0)/4.0
+   ! DO iy=2,NYP
+   ! Bxg(:,iy,1)=(Bx(:,iy,1)+Bx(:,iy-1,1)+0.0+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+0.0+0.0)/4.0
+
+   ! Parallel to, and inside of, conductor surface
+   Bxg(:,:,1)=0.0
    
    END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Bxg(:,:,1)=Bxg0(:,:,1)
+   END IF
    
+END IF
+
+IF (zmaxp.EQ.zmax) THEN
+
+   IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bxg(:,:,NZP)=0.0
+   END IF
+
 END IF
 
 DEALLOCATE(bufS1,bufR1)
@@ -906,14 +1136,31 @@ IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
    
-   DO iz=2,NZP
-   Byg(1,:,iz)=(By(1,:,iz)+0.0+By(1,:,iz-1)+0.0)/4.0
-   ENDDO
-   
-   Byg(1,:,1)=(By(1,:,1)+0.0+bufR2(1,:)+0.0)/4.0
+   ! DO iz=2,NZP
+   ! Byg(1,:,iz)=(By(1,:,iz)+0.0+By(1,:,iz-1)+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Byg(1,:,1)=(By(1,:,1)+0.0+bufR2(1,:)+0.0)/4.0
+
+   ! Parallel to, and inside of, conductor surface
+   Byg(1,:,:)=0.0
    
    END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Byg(1,:,:)=Byg0(1,:,:)
+   END IF
    
+END IF
+
+IF (xmaxp.EQ.xmax) THEN
+
+   IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Byg(NXP,:,:)=0.0
+   END IF
+
 END IF
    
 !***********************************************************************
@@ -923,12 +1170,29 @@ IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
 
-   DO ix=2,NXP
-   Byg(ix,:,1)=(By(ix,:,1)+By(ix-1,:,1)+0.0+0.0)/4.0
-   ENDDO
-   
-   Byg(1,:,1)=(By(1,:,1)+BufR1(:,1)+0.0+0.0)/4.0
+   ! DO ix=2,NXP
+   ! Byg(ix,:,1)=(By(ix,:,1)+By(ix-1,:,1)+0.0+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Byg(1,:,1)=(By(1,:,1)+BufR1(:,1)+0.0+0.0)/4.0
+
+   ! Parallel to, and inside of, conductor surface
+   Byg(:,:,1)=0.0
       
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Byg(:,:,1)=Byg0(:,:,1)
+   END IF
+
+END IF
+
+IF (zmaxp.EQ.zmax) THEN
+
+   IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Byg(:,:,NZP)=0.0
    END IF
 
 END IF
@@ -987,14 +1251,31 @@ IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
    
-   DO iy=2,NYP
-   Bzg(1,iy,:)=(Bz(1,iy,:)+0.0+Bz(1,iy-1,:)+0.0)/4.0
-   ENDDO
-   
-   Bzg(1,1,:)=(Bz(1,1,:)+0.0+bufR1(1,:)+0.0)/4.0
+   ! DO iy=2,NYP
+   ! Bzg(1,iy,:)=(Bz(1,iy,:)+0.0+Bz(1,iy-1,:)+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Bzg(1,1,:)=(Bz(1,1,:)+0.0+bufR1(1,:)+0.0)/4.0
+
+   ! Parallel to, and inside of, conductor surface
+   Bzg(1,:,:)=0.0
    
    END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Bzg(1,:,:)=Bzg0(1,:,:)
+   END IF
    
+END IF
+
+IF (xmaxp.EQ.xmax) THEN
+
+   IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bzg(NXP,:,:)=0.0
+   END IF
+
 END IF
    
 !***********************************************************************
@@ -1004,12 +1285,29 @@ IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
 
-   DO ix=2,NXP
-   Bzg(ix,1,:)=(Bz(ix,1,:)+Bz(ix-1,1,:)+0.0+0.0)/4.0
-   ENDDO
+   ! DO ix=2,NXP
+   ! Bzg(ix,1,:)=(Bz(ix,1,:)+Bz(ix-1,1,:)+0.0+0.0)/4.0
+   ! ENDDO
+   ! 
+   ! Bzg(1,1,:)=(Bz(1,1,:)+BufR2(1,:)+0.0+0.0)/4.0
    
-   Bzg(1,1,:)=(Bz(1,1,:)+BufR2(1,:)+0.0+0.0)/4.0
+   ! Parallel to, and inside of, conductor surface
+   Bzg(:,1,:)=0.0
       
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Bzg(:,1,:)=Bzg0(:,1,:)
+   END IF
+
+END IF
+
+IF (ymaxp.EQ.ymax) THEN
+
+   IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Bzg(:,NYP,:)=0.0
    END IF
 
 END IF
@@ -1045,8 +1343,24 @@ Exg(1,:,:)=(Ex(1,:,:)+bufR2(:,:))/2.0
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! ! At the conductor surface
+   ! Exg(1,:,:)=(Ex(1,:,:)+0.0)/2.0
+   ! Normal to, and inside of, the conductor surface
+   Exg(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, the nozzle surface
+   Exg(1,:,:)=Exg0(1,:,:)
+   END IF
+
+END IF
+
+IF (xmaxp.EQ.xmax) THEN
+
+   IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
    ! At the conductor surface
-   Exg(1,:,:)=(Ex(1,:,:)+0.0)/2.0
+   Exg(NXP,:,:)=0.0
    END IF
 
 END IF
@@ -1080,8 +1394,24 @@ Eyg(:,1,:)=(Ey(:,1,:)+bufR1(:,:))/2.0
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! ! At the conductor surface
+   ! Eyg(:,1,:)=(Ey(:,1,:)+0.0)/2.0
+   ! Normal to, and inside of, the conductor surface
+   Eyg(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, the nozzle surface
+   Eyg(:,1,:)=Eyg0(:,1,:)
+   END IF
+
+END IF
+
+IF (ymaxp.EQ.ymax) THEN
+
+   IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
    ! At the conductor surface
-   Eyg(:,1,:)=(Ey(:,1,:)+0.0)/2.0
+   Eyg(:,NYP,:)=0.0
    END IF
 
 END IF
@@ -1115,8 +1445,24 @@ Ezg(:,:,1)=(Ez(:,:,1)+bufR1(:,:))/2.0
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! ! At the conductor surface
+   ! Ezg(:,:,1)=(Ez(:,:,1)+0.0)/2.0
+   ! Normal to, and inside of, the conductor surface
+   Ezg(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Normal to, and inside of, the nozzle surface
+   Ezg(:,:,1)=Ezg0(:,:,1)
+   END IF
+
+END IF
+
+IF (zmaxp.EQ.zmax) THEN
+
+   IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
    ! At the conductor surface
-   Ezg(:,:,1)=(Ez(:,:,1)+0.0)/2.0
+   Ezg(:,:,NZP)=0.0
    END IF
 
 END IF
@@ -1722,18 +2068,95 @@ Ex(ix,:,:)=Ex(ix,:,:)-(phi(ix+1,:,:)-phi(ix,:,:))/dx
 ENDDO
 
 !***********************************************************************
+! JM note on boundary conditions:
+! Following convention for pulsar simulations, here a metallic boundary
+! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
+!
+! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
+! This basically means that no matter where the conductor is, we need to
+! set one full cell's worth of field values.
+!***********************************************************************
+!***********************************************************************
 ! Check boundary conditions along X
+
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ex(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ex(1,:,:)=Ex0(1,:,:)
+   END IF
+
+END IF
 
 IF (xmaxp.EQ.xmax.AND.BOUND_FIELD_XMAX.NE."PERIODIC") THEN
 
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
-   Ex(NXP,:,:)=Ex(NXP,:,:)
+   ! Ex(NXP,:,:)=Ex(NXP,:,:)
+   ! Inside conductor
+   Ex(NXP,:,:)=0.0
    END IF
 
 ELSE
 
 ! ix=NXP
 Ex(NXP,:,:)=Ex(NXP,:,:)-(bufRE1(:,:)-phi(NXP,:,:))/dx
+
+END IF
+
+!***********************************************************************
+! Check boundary conditions along Y
+
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ex(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ex(:,1,:)=Ex0(:,1,:)
+   END IF
+
+END IF
+
+IF (ymaxp.EQ.ymax) THEN
+
+   IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ex(:,NYP,:)=0.0
+   END IF
+
+END IF
+
+!***********************************************************************
+! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ex(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ex(:,:,1)=Ex0(:,:,1)
+   END IF
+
+END IF
+
+IF (zmaxp.EQ.zmax) THEN
+
+   IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ex(:,:,NZP)=0.0
+   END IF
 
 END IF
 
@@ -1745,18 +2168,86 @@ Ey(:,iy,:)=Ey(:,iy,:)-(phi(:,iy+1,:)-phi(:,iy,:))/dy
 ENDDO
 
 !***********************************************************************
+! Check boundary conditions along X
+
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ey(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ey(1,:,:)=Ey0(1,:,:)
+   END IF
+
+END IF
+
+IF (xmaxp.EQ.xmax) THEN
+
+   IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ey(NXP,:,:)=0.0
+   END IF
+
+END IF
+
+!***********************************************************************
 ! Check boundary conditions along Y
+
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ey(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ey(:,1,:)=Ey0(:,1,:)
+   END IF
+
+END IF
 
 IF (ymaxp.EQ.ymax.AND.BOUND_FIELD_YMAX.NE."PERIODIC") THEN
 
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
-   Ey(:,NYP,:)=Ey(:,NYP,:)
+   ! Ey(:,NYP,:)=Ey(:,NYP,:)
+   ! Inside conductor
+   Ey(:,NYP,:)=0.0
    END IF
 
 ELSE
    
 ! iy=NYP
 Ey(:,NYP,:)=Ey(:,NYP,:)-(bufRN1(:,:)-phi(:,NYP,:))/dy
+
+END IF
+
+!***********************************************************************
+! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ey(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ey(:,:,1)=Ey0(:,:,1)
+   END IF
+
+END IF
+
+IF (zmaxp.EQ.zmax) THEN
+
+   IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ey(:,:,NZP)=0.0
+   END IF
 
 END IF
 
@@ -1768,12 +2259,79 @@ Ez(:,:,iz)=Ez(:,:,iz)-(phi(:,:,iz+1)-phi(:,:,iz))/dz
 ENDDO
 
 !***********************************************************************
+! Check boundary conditions along X
+IF (xminp.EQ.xmin) THEN
+
+   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ez(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ez(1,:,:)=Ez0(1,:,:)
+   END IF
+
+END IF
+
+IF (xmaxp.EQ.xmax) THEN
+
+   IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ez(NXP,:,:)=0.0
+   END IF
+
+END IF
+
+!***********************************************************************
+! Check boundary conditions along Y
+
+IF (yminp.EQ.ymin) THEN
+
+   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! Parallel to, and inside of, conductor surface
+   Ez(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   ! Parallel to, and inside of, nozzle surface
+   Ez(:,1,:)=Ez0(:,1,:)
+   END IF
+
+END IF
+
+IF (ymaxp.EQ.ymax) THEN
+
+   IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
+   ! Tangent to conductor surface
+   Ez(:,NYP,:)=0.0
+   END IF
+
+END IF
+
+!***********************************************************************
 ! Check boundary conditions along Z
+
+IF (zminp.EQ.zmin) THEN
+   
+   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! Normal to conductor surface
+   Ez(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   ! Normal to nozzle surface
+   Ez(:,:,1)=Ez0(:,:,1)
+   END IF
+
+END IF
 
 IF (zmaxp.EQ.zmax.AND.BOUND_FIELD_ZMAX.NE."PERIODIC") THEN
 
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
-   Ez(:,:,NZP)=Ez(:,:,NZP)
+   ! Ez(:,:,NZP)=Ez(:,:,NZP)
+   ! Inside conductor
+   Ez(:,:,NZP)=0.0
    END IF
 
 ELSE
