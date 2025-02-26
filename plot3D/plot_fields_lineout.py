@@ -1,0 +1,429 @@
+#***********************************************************************!
+#                       The Zeltron code project.                       !
+#***********************************************************************!
+# Copyright (C) 2012-2015. Authors: Benoit Cerutti & Greg Werner        !
+#                                                                       !
+# This program is free software: you can redistribute it and/or modify  !
+# it under the terms of the GNU General Public License as published by  !
+# the Free Software Foundation, either version 3 of the License, or     !
+# (at your option) any later version.                                   !
+#                                                                       !
+# This program is distributed in the hope that it will be useful,       !
+# but WITHOUT ANY WARRANTY; without even the implied warranty of        !
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         !
+# GNU General Public License for more details.                          !
+#                                                                       !
+# You should have received a copy of the GNU General Public License     !
+# along with this program. If not, see <http://www.gnu.org/licenses/>.  !
+#***********************************************************************!
+
+from matplotlib import pyplot as plt
+import matplotlib.patheffects as pe
+import matplotlib.colors as colors
+from mpl_toolkits.axes_grid1 import ImageGrid 
+from scipy.signal import find_peaks
+import numpy as np
+import copy
+import sys
+import os
+
+from matplotlib.ticker import AutoLocator, MaxNLocator
+
+import plotutil as pu
+from custom_cmaps import register_custom_cmaps
+
+plt.style.use("~/repos/knturb/scripts/aa_ppt.mplstyle")
+register_custom_cmaps(plt)
+figsizeHere = np.array([1., 4.]) * np.array(plt.rcParams["figure.figsize"])
+
+c = 299792458e2
+e = 4.8032068e-10
+me=9.1093897e-28
+
+def plot_fields_slice(*args, **kwargs):
+    it = args[0]
+
+    simdir   = "./../"
+    datadir  = os.path.join(simdir, "data")
+    fielddir = os.path.join(datadir, "fields")
+    params   = pu.get_sim_params_dict(simdir)
+
+    #===========================================================================
+    # Parameters of the simulation
+    xmax = params["xmax [cm]"]
+    xmin = params["xmin [cm]"]
+    ymax = params["ymax [cm]"]
+    ymin = params["ymin [cm]"]
+    zmax = params["zmax [cm]"]
+    zmin = params["zmin [cm]"]
+    dt   = params["dt [s]"]
+    dx   = params["dx [cm]"]
+    dy   = params["dy [cm]"]
+    dz   = params["dz [cm]"]
+
+    rlc     = params["R_LC [cm]"]
+    rnozzle = params["R_nozzle [cm]"]
+    sigmabg = params["sigma"]
+    B0      = params["B0 [G]"]
+    # zmono   = params["z_monopole [cm]"]
+
+    # Derived parameters
+    xnorm = rlc
+    ynorm = rlc
+    znorm = rlc
+
+    xlabel = r"$x/R_{\rm LC}$"
+    ylabel = r"$y/R_{\rm LC}$"
+    zlabel = r"$z/R_{\rm LC}$"
+
+    Nx = int(np.round((xmax-xmin)/dx))
+    Ny = int(np.round((ymax-ymin)/dy))
+    Nz = int(np.round((zmax-zmin)/dz))
+
+    # Coordinates
+    z = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "axis0coords")
+    y = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "axis1coords")
+    x = pu.readArrayFromHdf5(os.path.join(fielddir, "Bx_%s.h5" % it), "axis2coords")
+
+    #===========================================================================
+    # Parse args
+
+    ix = int(np.round(Ny/2))
+    iy = int(np.round(Ny/2))
+    iz = None
+    slicestr = "ix%d_iy%d" % (ix, iy)
+    dslice = (slice(None), slice(iy,iy+1), slice(ix,ix+1))
+    planelabel = r"(%s, %s) = (%.2f, %.2f)" % (xlabel, ylabel, x[ix]/xnorm, y[iy]/ynorm)
+    hlabel = zlabel
+    hnorm  = znorm
+    hmax   = zmax
+    hmin   = zmin
+    hcoords= z
+    need_transpose = False
+
+    numixyz = 0
+    if "ix" in kwargs.keys() and "iy" in kwargs.keys():
+        ix = kwargs["ix"]
+        iy = kwargs["iy"]
+        iz = None
+        slicestr = "ix%d_iy%d" % (ix, iy)
+        dslice = (slice(None), slice(iy,iy+1), slice(ix,ix+1))
+        planelabel = r"(%s, %s) = (%.2f, %.2f)" % (xlabel, ylabel, x[ix]/xnorm, y[iy]/ynorm)
+        hlabel = zlabel
+        hnorm  = znorm
+        hmax   = zmax
+        hmin   = zmin
+        hcoords= z
+        # vlabel = ylabel
+        # vnorm  = ynorm
+        # vmin   = ymin
+        # vmax   = ymax
+        # vcoords= y
+        need_transpose = True
+        numixyz += 1
+    if "ix" in kwargs.keys() and "iz" in kwargs.keys():
+        iy = None
+        ix = kwargs["ix"]
+        iz = kwargs["iz"]
+        slicestr = "ix%d_iz%d" % (ix, iz)
+        dslice = (slice(iz,iz+1), slice(None), slice(ix,ix+1))
+        planelabel = r"(%s, %s) = (%.2f, %.2f)" % (xlabel, zlabel, x[ix]/xnorm, z[iz]/znorm)
+        hlabel = ylabel
+        hnorm  = ynorm
+        hmax   = ymax
+        hmin   = ymin
+        hcoords= y
+        # vlabel = xlabel
+        # vnorm  = xnorm
+        # vmin   = xmin
+        # vmax   = xmax
+        # vcoords= x
+        need_transpose = True
+        numixyz += 1
+    if "iy" in kwargs.keys() and "iz" in kwargs.keys():
+        ix = None
+        iy = kwargs["iy"]
+        iz = kwargs["iz"]
+        slicestr = "iy%d_iz%d" % (iy, iz)
+        dslice = (slice(iz,iz+1), slice(iy,iy+1), slice(None))
+        planelabel = r"(%s, %s) = (%.2f, %.2f)" % (ylabel, zlabel, y[iy]/ynorm, z[iz]/znorm)
+        hlabel = xlabel
+        hnorm  = xnorm
+        hmax   = xmax
+        hmin   = xmin
+        hcoords= x
+        # vlabel = ylabel
+        # vnorm  = ynorm
+        # vmin   = ymin
+        # vmax   = ymax
+        # vcoords= y
+        need_transpose = False
+        numixyz += 1
+
+    # if numixyz > 1:
+    #     print("You may only specify one of 'ix', 'iy', or 'iz' args.")
+    #     print("Got %d" % numixyz)
+    #     print("Aborting...")
+    #     sys.exit(0)
+
+    hmax_plot = hmax/hnorm
+    # xmax_plot = xmax/(sigc*rho0)
+    if "hmax" in kwargs.keys():
+        hmax_plot = kwargs["hmax"]
+    hmin_plot = hmin/hnorm
+    # xmin_plot = xmin/(sigc*rho0)
+    if "hmin" in kwargs.keys():
+        hmin_plot = kwargs["hmax"]
+
+    vmin_plot = -1.0
+    # ymin_plot = ymin/(sigc*rho0)
+    if "vmin" in kwargs.keys():
+        vmin_plot = kwargs["vmin"]
+    vmax_plot = -vmin_plot
+    # ymax_plot = ymax/(sigc*rho0)
+    if "vmax" in kwargs.keys():
+        vmax_plot = kwargs["vmax"]
+
+    # cmap = "RdBu_r"
+    # if "cmap" in kwargs.keys():
+    #     cmap = kwargs["cmap"]
+    # cmin = -1.0
+    # if "cmin" in kwargs.keys():
+    #     cmin = kwargs["cmin"]
+    # cmax = 1.0
+    # if "cmax" in kwargs.keys():
+    #     cmax = kwargs["cmax"]
+
+    #===========================================================================
+    # Read simulation data
+    Bz = pu.readArrayFromHdf5(os.path.join(fielddir, "Bz_%s.h5" % it), "field")
+    By = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "field")
+    Bx = pu.readArrayFromHdf5(os.path.join(fielddir, "Bx_%s.h5" % it), "field")
+    Ez = pu.readArrayFromHdf5(os.path.join(fielddir, "Ez_%s.h5" % it), "field")
+    Ey = pu.readArrayFromHdf5(os.path.join(fielddir, "Ey_%s.h5" % it), "field")
+    Ex = pu.readArrayFromHdf5(os.path.join(fielddir, "Ex_%s.h5" % it), "field")
+
+    Bz = Bz[dslice].squeeze()
+    By = By[dslice].squeeze()
+    Bx = Bx[dslice].squeeze()
+    Ez = Ez[dslice].squeeze()
+    Ey = Ey[dslice].squeeze()
+    Ex = Ex[dslice].squeeze()
+
+    # if need_transpose:
+    #     Bz = np.transpose(Bz)
+    #     By = np.transpose(By)
+    #     Bx = np.transpose(Bx)
+    #     Ez = np.transpose(Ez)
+    #     Ey = np.transpose(Ey)
+    #     Ex = np.transpose(Ex)
+
+    #===========================================================================
+    # Build figure
+    nrows = 2
+    ncols = 3
+    # cbar_location = "top"
+    # cbar_mode = "single"
+    # cbar_size = "7%"
+    # cbar_pad = 0.6
+
+    pad = 0.05
+    delta = pad * (hmax_plot - hmin_plot)
+    texth = hmax_plot - delta
+    textv = vmax_plot - delta
+    textha = "right"
+    textva = "top"
+    lw = plt.rcParams["lines.linewidth"]
+    path_effects = [
+        pe.Stroke(linewidth = 1.5*lw, foreground = 'w', alpha=1.0),
+        pe.Normal()
+    ]
+
+    itpad = '{:>6}'.format(it)
+    timestr = "timestep="+itpad+r"; $ct/R_{\rm LC}$=%.2f" \
+        % (c*dt*int(it)/rlc)
+    titlestr = timestr + "; " + planelabel
+
+    fig = plt.figure(1, figsize=figsizeHere)
+    grid = ImageGrid(
+        fig, 111,
+        nrows_ncols = (nrows, ncols),
+        axes_pad = 0.1,
+        # cbar_location = cbar_location,
+        # cbar_mode = cbar_mode,
+        # cbar_size = cbar_size,
+        # cbar_pad = cbar_pad,
+    )
+
+    #===========================================================================
+    # Ex
+    ax = grid[0]
+    # ax.grid(False)
+    ax.set_title(titlestr, loc = "left", fontsize="small")
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, Ex/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax
+    # )
+    ax.plot(hcoords/hnorm, Ex/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(r"$E_x/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$E_x/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # Ey
+    ax = grid[1]
+    # ax.grid(False)
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, Ey/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax
+    # )
+    ax.plot(hcoords/hnorm, Ey/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(vlabel)
+    # ax.set_ylabel(r"$E_y/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$E_y/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # Ez
+    ax = grid[2]
+    # ax.grid(False)
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, Ez/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax
+    # )
+    ax.plot(hcoords/hnorm, Ez/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(vlabel)
+    # ax.set_ylabel(r"$E_z/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$E_z/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # Bx
+    ax = grid[3]
+    # ax.grid(False)
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, Bx/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax
+    # )
+    ax.plot(hcoords/hnorm, Bx/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(vlabel)
+    # ax.set_ylabel(r"$B_x/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$B_x/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # By
+    ax = grid[4]
+    # ax.grid(False)
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, By/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax
+    # )
+    ax.plot(hcoords/hnorm, By/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(vlabel)
+    # ax.set_ylabel(r"$B_y/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$B_y/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # Bz
+    ax = grid[5]
+    # ax.grid(False)
+    # pm = ax.pcolormesh(
+    #     hcoords/hnorm, vcoords/vnorm, Bz/B0,
+    #     cmap = cmap,
+    #     shading = "auto",
+    #     vmin = cmin, vmax = cmax,
+    #     path_effects = path_effects,
+    # )
+    ax.plot(hcoords/hnorm, Bz/B0)
+    ax.set_xlabel(hlabel)
+    # ax.set_ylabel(vlabel)
+    # ax.set_ylabel(r"$B_z/B_0$")
+    ax.set_xlim((hmin_plot, hmax_plot))
+    ax.set_ylim((vmin_plot, vmax_plot))
+    ax.text(
+        texth, textv, r"$B_z/B_0$",
+        ha = textha, va = textva,
+        path_effects = path_effects,
+    )
+    # ax.set_aspect("equal")
+
+    #===========================================================================
+    # Do the colorbar
+    # ax.cax.grid(False)
+    # ax.cax.colorbar(pm)
+
+    #===========================================================================
+    fname=".././data/plots/fields_%s_%s.png" % (slicestr, it)
+    if "save" in kwargs.keys():
+        fname = kwargs["save"]
+    plt.savefig(fname, bbox_inches="tight")
+
+args, kwargs = pu.getArgsAndKwargs(sys.argv[1:])
+if len(args) == 0:
+    print("usage: python plot_fields_slice.py timestep [keywords]")
+    print("  Plot E&B fields on one 2D plane")
+    print("  ix=;iy=;iz=")
+    print("  Plane is specied by one cell index in x, y, or z")
+    print("  Default is iy=0")
+    print("  hmin/hmax = the min/max abscissa axis values")
+    print("  vmin/vmax = the min/max ordinate axis values")
+    print("  cmin/cmax = the min/max colorbar values")
+    print("  save = the file name (including extension) to save the figure to")
+    print("  verbose = True/False -- print runtime diagnostic information")
+    # print("  fieldnorm = normalize E/B fields by this multiple of B0")
+    # print("  reduceRes = 1 (no reduction), 2, 3, 4, ...")
+    # print("  redResPow2 = 0 (no reduction), 1, 2, ...")
+    # print("     reduce resolution in each dimension by specified factor of 2")
+    # print("     'smooth' smooths is applied each time (including if redResPow2 = 0)")
+    # print("  smooth = 0 (no smoothing), 1, 2, 3, ...")
+    # print("  norm = [bunif (default), bcone, bparab]")
+    # print("  smooth = 0 (no smoothing), 1, 2, 3, ...")
+    sys.exit(0)
+plot_fields_slice(*args,**kwargs)
