@@ -36,3 +36,7 @@ Zeltron3D/tags
 
 # vim files
 */.*.swp
+
+# Python temporary files
+*/*.pyc
+*/__pycache__
