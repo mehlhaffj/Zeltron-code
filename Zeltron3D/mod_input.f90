@@ -83,12 +83,12 @@ LOGICAL, PARAMETER, PUBLIC :: TEST_RESTORE = .FALSE.
 ! 2. "METAL": Perfect metal with infinite conductivity
 ! 3. "NOZZLE": Impose B-line rotation across a conducting nozzle
 !   NOZZLE only supported for [X|Y|Z]MIN boundaries !!
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMIN="PERIODIC"
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMAX="PERIODIC"
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_YMIN="PERIODIC"
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_YMAX="PERIODIC"
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMIN="PERIODIC"
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMAX="PERIODIC"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMIN="METAL"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_XMAX="METAL"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_YMIN="METAL"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_YMAX="METAL"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMIN="NOZZLE"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMAX="METAL"
 
 ! Specify the boundary conditions for the particles:
 ! 1. "PERIODIC": Periodic boundary conditions
@@ -110,20 +110,20 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_ZMAX="PERIODIC"
 ! 2. "UNIFORM": Initial uniform \vec{B} = B_0 \hat{z}
 ! 3. "MONOPOLE": Place magnetic monopole on z-axis below zmin
 !     Strength of B-field at (xmin, ymin, zmin) is B_0
-CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="RECONN"
+CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="UNIFORM"
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++ INPUT PARAMETERS ++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Number of cells in X
-INTEGER*8, PARAMETER, PUBLIC :: NCX=32
+INTEGER*8, PARAMETER, PUBLIC :: NCX=64
 
 ! Number of cells in Y
-INTEGER*8, PARAMETER, PUBLIC :: NCY=32
+INTEGER*8, PARAMETER, PUBLIC :: NCY=NCX
 
 ! Number of cells in Z
-INTEGER*8, PARAMETER, PUBLIC :: NCZ=16
+INTEGER*8, PARAMETER, PUBLIC :: NCZ=64
 
 ! Number of particles per cell per species
 INTEGER*8, PARAMETER, PUBLIC :: PPC=1
@@ -137,16 +137,16 @@ INTEGER, PARAMETER, PUBLIC :: NPZ=1
 DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0
 
 ! Spatial boundaries in the X-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=0d0,xmax=32d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-32d0,xmax=32d0
 
 ! Spatial boundaries in the Y-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=0d0,ymax=32d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
 
 ! Spatial boundaries in the Z-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: zmin=0d0,zmax=16d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: zmin=0d0,zmax=(xmax-xmin)*NCZ/NCX
 
 ! Dump data frequency in terms of timesteps
-INTEGER, PARAMETER, PUBLIC :: FDUMP=200
+INTEGER, PARAMETER, PUBLIC :: FDUMP=50
 
 ! Number of data dumps
 INTEGER, PARAMETER, PUBLIC :: NDUMP=5
@@ -234,13 +234,16 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: thbe=1d0
 DOUBLE PRECISION, PARAMETER, PUBLIC :: thbi=1d0
 
 ! Minimum Larmor radius of the electrons
-DOUBLE PRECISION, PARAMETER, PUBLIC :: rhoc=2d0
+! For INIT="RECONN", this is thde*me*c^2/(e*B0)
+! For INIT="UNIFORM" or "MONOPOLE", this is me*c^2/(e*B0)
+DOUBLE PRECISION, PARAMETER, PUBLIC :: rhoc=1d0
 
 ! Drift velocity betad=vdrift/c
-DOUBLE PRECISION, PARAMETER, PUBLIC :: betad=0.6d0
+! For "INJECT" particle BC, this is the drift speed of the injected particles
+DOUBLE PRECISION, PARAMETER, PUBLIC :: betad=0.5d0
 
-! Density ratio between initial DRIFTING and BACKGROUND particles
-DOUBLE PRECISION, PARAMETER, PUBLIC :: density_ratio=0.1d0
+! Ratio of initial BACKGROUND to DRIFTING particle number densities
+DOUBLE PRECISION, PARAMETER, PUBLIC :: ratio_nb2nd=1.0/SQRT(2d0**4)
 
 ! Energy density ratio between external radiation field and the magnetic field
 ! udens_ratio=Uph/Ub, where Ub=B0^2/8*pi
@@ -255,11 +258,23 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: udemin=-1d2,udemax=1d2
 DOUBLE PRECISION, PARAMETER, PUBLIC :: udpmin=-1d2,udpmax=1d2
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Extra parameters for INIT="MONOPOLE" or "UNIFORM"
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! The magnetization injected across NOZZLE with INJECT particle BC
+! This is the total magnetization (including electrons and positrons)
+DOUBLE PRECISION, PARAMETER, PUBLIC :: sigma_inj = 1.0/(ratio_nb2nd**2)
+! The multiplicity injected across NOZZLE with INJECT particle BC
+! This 
+DOUBLE PRECISION, PARAMETER, PUBLIC :: kappa  = 12.0
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! Extra parameters for BOUND_FIELD_[X|Y|Z]MIN = "NOZZLE"
 ! This might only be implemented for BOUND_FIELD_ZMIN="NOZZLE"
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Convenience parameter: magnetization of background plasma
+DOUBLE PRECISION, PARAMETER, PRIVATE :: sigma_bg = sigma_inj/ratio_nb2nd
 ! Light cylinder radius defined by nozzle solid-body rotation
-DOUBLE PRECISION, PARAMETER, PUBLIC :: rlc=30*rhoc
+DOUBLE PRECISION, PARAMETER, PUBLIC :: rlc=2*kappa*sigma_bg*rhoc
 ! Nozzle radius
 ! (in plane perp. to the coord. for which BOUND_FIELD_MIN = "NOZZLE")
 DOUBLE PRECISION, PARAMETER, PUBLIC :: rnozzle=0.9*rlc
@@ -437,6 +452,9 @@ LOGICAL, PARAMETER, PUBLIC :: writePerRankFiles=.FALSE.
 
 ! the name of the per-rank file
 CHARACTER(len=18), PUBLIC  :: perRankFile
+
+! Do a simulation without particles
+LOGICAL, PARAMETER, PUBLIC :: VACUUM_SIM=.FALSE.
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

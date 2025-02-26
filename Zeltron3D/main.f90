@@ -712,10 +712,17 @@ PRINT*,'# cells z-direction        =',NCZ
 PRINT*,'# Particles per cells      =',4*PPC
 PRINT*,'Total # of Particles       =',4*NP
 PRINT*,'# of tracked Particles     =',NSAMPLE
+IF (INIT.EQ."RECONN") THEN
 PRINT*,'rhoc [cm]                  =',rhoc
 PRINT*,'rhoc/dx                    =',rhoc/((xmax-xmin)/(NX-1))
 PRINT*,'rhoc/dy                    =',rhoc/((ymax-ymin)/(NY-1))
 PRINT*,'rhoc/dz                    =',rhoc/((zmax-zmin)/(NZ-1))
+ELSE
+PRINT*,'rho0 [cm]                  =',rhoc
+PRINT*,'rho0/dx                    =',rhoc/((xmax-xmin)/(NX-1))
+PRINT*,'rho0/dy                    =',rhoc/((ymax-ymin)/(NY-1))
+PRINT*,'rho0/dz                    =',rhoc/((zmax-zmin)/(NZ-1))
+END IF
 PRINT*,'# of time steps            =',NT
 PRINT*,'Dump frequency             =',FDUMP
 PRINT*,'Checkpoint frequency       =',FSAVE
@@ -723,21 +730,35 @@ PRINT*,'Drifting temp. e- [mc2]    =',thde
 PRINT*,'Drifting temp. ion [mc2]   =',thdi
 PRINT*,'Background temp. e- [mc2]  =',thbe
 PRINT*,'Background temp. ion [mc2] =',thbi
-PRINT*,'Density ratio              =',density_ratio
+PRINT*,'Density ratio              =',ratio_nb2nd
 PRINT*,'Mass ions/electrons        =',mass_ratio
+IF (INIT.EQ."RECONN") THEN
 PRINT*,'delta/rhoc                 =',delta/rhoc
 PRINT*,'de/rhoc                    =',de/rhoc
+ELSE
+PRINT*,'de/rho0                    =',de/rhoc
+END IF
 PRINT*,'B0 [Gauss]                 =',B0
+IF (INIT.EQ."RECONN") THEN
 PRINT*,'Bz/B0                      =',guide_field
 PRINT*,'1/omegac [s]               =',rhoc/c
 PRINT*,'dt*omegac                  =',dt/(rhoc/c)
+ELSE
+PRINT*,'1/omega0 [s]               =',rhoc/c
+PRINT*,'dt*omega0                  =',dt/(rhoc/c)
+END IF
 PRINT*,'gamma_rad                  =',grad
 PRINT*,'udens_ratio                =',udens_ratio
 PRINT*,'gamma_drift                =',1.0/sqrt(1.0-betad*betad)
 PRINT*,'Drift. dens. [cm-3]        =',nd0
 PRINT*,'sigma                      =',sigma
+IF (INIT.EQ."RECONN") THEN
 PRINT*,'Amplitude Perturbation     =',perturb_amp
 PRINT*,'Guide field strength in B0 =',guide_field
+ELSE
+PRINT*,'R_LC    /rho0              =',rlc/rhoc
+PRINT*,'R_nozzle/rho0              =',rnozzle/rhoc
+END IF
 PRINT*,'*******************************************************'
 
 OPEN(9,FILE="./data/input_params.dat")
@@ -749,14 +770,15 @@ WRITE(9,'(32A26)') 'NPROC','NPROC along X','NPROC along Y','NPROC along Z',&
                    'energy density ratio'
 WRITE(9,'(11I26,21E26.16E3)') NPROC,NPX,NPY,NPZ,NX,NY,NZ,PPC,NP,NT,FDUMP,FSAVE,&
                               xmin,xmax,ymin,ymax,zmin,zmax,dx,dy,dz,dt,umin,umax,&
-                              betad,thde,thbe,thdi,thbi,density_ratio,mass_ratio,&
+                              betad,thde,thbe,thdi,thbi,ratio_nb2nd,mass_ratio,&
                               udens_ratio
 CLOSE(9)
 
 OPEN(9,FILE="./data/phys_params.dat")
-WRITE(9,'(8A26)') 'delta [cm]','de [cm]','B0 [G]','omegac [s^-1]',&
-                  'Drift. dens. [cm^-3]','Uph [erg/cm^-3]','sigma','gamma_rad'
-WRITE(9,'(8E26.16E3)') delta,de,B0,c/rhoc,nd0,Uph,sigma,grad
+WRITE(9,'(11A26)') 'delta [cm]','de [cm]','B0 [G]','omegac [s^-1]',&
+                  'Drift. dens. [cm^-3]','Uph [erg/cm^-3]','sigma','gamma_rad',&
+                  'R_LC [cm]','R_nozzle [cm]','z_monopole [cm]'
+WRITE(9,'(11E26.16E3)') delta,de,B0,c/rhoc,nd0,Uph,sigma,grad,rlc,rnozzle,zmp
 CLOSE(9)
 
 END IF
@@ -790,9 +812,15 @@ CALL SET_DRIFT_MAXWELLIAN(1d0,pcl_pd,thdi,upp,gFpp,psp,gFsp,xminp,yminp,zminp,ND
 ! Weight of drifting particles
 CALL WEIGHT(pcl_ed,delta,NPP)
 pcl_ed(7,:)=pcl_ed(7,:)*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
+! For INIT.NEQ."RECONN" there are never any drifting particles initially,
+! but they can be injected later on
+pcl_ed(7,:)=0d0
 
 CALL WEIGHT(pcl_pd,delta,NPP)
 pcl_pd(7,:)=pcl_pd(7,:)*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
+! For INIT.NEQ."RECONN" there are never any drifting particles initially,
+! but they can be injected later on
+pcl_pd(7,:)=0d0
 
 ! Tag of drifting particles
 ALLOCATE(taged(1:NPP),tagpd(1:NPP))
@@ -804,7 +832,7 @@ CALL SET_TAG(tagpd,id,NPP)
 ! Generate initial BACKGROUND PARTICLES distribution function at t=0
 !=======================================================================
 
-n0=density_ratio*nd0
+n0=ratio_nb2nd*nd0
 
 NEB=NPP
 NPB=NPP
@@ -826,8 +854,8 @@ pcl_data_pb=0d0
 CALL SET_MAXWELLIAN(pcl_pb,thbi,xminp,yminp,zminp,NPP)  
  
 ! Weight of background particles
-pcl_eb(7,:)=density_ratio*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
-pcl_pb(7,:)=density_ratio*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
+pcl_eb(7,:)=ratio_nb2nd*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
+pcl_pb(7,:)=ratio_nb2nd*nd0*(xmax-xmin)*(ymax-ymin)*(zmax-zmin)/NP
 
 ! Tag background particles
 ALLOCATE(tageb(1:NPP),tagpb(1:NPP))

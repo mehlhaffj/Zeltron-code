@@ -31,6 +31,13 @@ PUBLIC :: FIELDS_NODES ! Computes E and B at nodes
 PUBLIC :: CORRECT_EFIELD ! Ensure that div(E)=4*pi*rho
 PUBLIC :: FILTER_FIELD ! Isotropic 3D filter using the nearest neighboring cells
 
+! The NOZZLE boundary condition supports a finite thickness
+! It can be nice to set this to 1 instead of 0 because, then,
+! particles vacating the simulation by precipitating into the
+! nozzle do not leave behind stray charge (since they are deleted
+! in a region where the fields are enforced anyway).
+INTEGER, PARAMETER, PUBLIC :: NOZZLE_THICKNESS = 1
+
  CONTAINS
 
 !***********************************************************************
@@ -136,27 +143,20 @@ DEALLOCATE(bufS1,bufR1)
 DEALLOCATE(bufS2,bufR2)
 
 !***********************************************************************
-! JM note on boundary conditions:
-! Following convention for pulsar simulations, here a metallic boundary
-! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
-!
-! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
-! This basically means that no matter where the conductor is, we need to
-! set one full cell's worth of field values.
-!***********************************************************************
-!***********************************************************************
 ! Check boundary conditions along X
   
 IF (xminp.EQ.xmin) THEN
 
-   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ex(1,:,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ex(1,:,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ex(1,:,:)=Ex0(1,:,:)
+   ! ! Normal to nozzle surface
+   ! Ex(1,:,:)=Ex0(1,:,:)
+   ! Set values up until just below nozzle surface
+   Ex(1:NOZZLE_THICKNESS,:,:)=Ex0(1:NOZZLE_THICKNESS,:,:)
    END IF
 
 END IF
@@ -176,13 +176,16 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ex(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ex(:,1,:)=Ex0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ex(:,1,:)=Ex0(:,1,:)
+   ! Tangent to nozzle surface
+   Ex(:,1:NOZZLE_THICKNESS+1,:)=Ex0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
    
 END IF
@@ -202,13 +205,16 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ex(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ex(:,:,1)=Ex0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ex(:,:,1)=Ex0(:,:,1)
+   ! Tangent to nozzle surface
+   Ex(:,:,1:NOZZLE_THICKNESS+1)=Ex0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
    
 END IF
@@ -272,13 +278,15 @@ DEALLOCATE(bufS2,bufR2)
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ey(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ey(1,:,:)=Ey0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ey(1,:,:)=Ey0(1,:,:)
+   Ey(1:NOZZLE_THICKNESS+1,:,:)=Ey0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
    
 END IF
@@ -297,14 +305,14 @@ END IF
 
 IF (yminp.EQ.ymin) THEN
 
-   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ey(:,1,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ey(:,1,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ey(:,1,:)=Ey0(:,1,:)
+   ! ! Normal to nozzle surface
+   Ey(:,1:NOZZLE_THICKNESS,:)=Ey0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -324,13 +332,15 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ey(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ey(:,:,1)=Ey0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ey(:,:,1)=Ey0(:,:,1)
+   Ey(:,:,1:NOZZLE_THICKNESS+1)=Ey0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
    
 END IF
@@ -394,13 +404,15 @@ DEALLOCATE(bufS2,bufR2)
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ez(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ez(1,:,:)=Ez0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ez(1,:,:)=Ez0(1,:,:)
+   Ez(1:NOZZLE_THICKNESS+1,:,:)=Ez0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
       
 END IF
@@ -420,13 +432,15 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ez(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ez(:,1,:)=Ez0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ez(:,1,:)=Ez0(:,1,:)
+   Ez(:,1:NOZZLE_THICKNESS+1,:)=Ez0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
    
 END IF
@@ -445,14 +459,15 @@ END IF
 
 IF (zminp.EQ.zmin) THEN
 
-   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ez(:,:,1)=0.0
-   END IF
+   ! IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ez(:,:,1)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ez(:,:,1)=Ez0(:,:,1)
+   ! ! Normal to nozzle surface
+   ! Ez(:,:,1)=Ez0(:,:,1)
+   Ez(:,:,1:NOZZLE_THICKNESS)=Ez0(:,:,1:NOZZLE_THICKNESS)
    END IF
 
 END IF
@@ -569,27 +584,21 @@ DEALLOCATE(bufS1,bufR1)
 DEALLOCATE(bufS2,bufR2)
 
 !***********************************************************************
-! JM note on boundary conditions:
-! Following convention for pulsar simulations, here a metallic boundary
-! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
-!
-! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
-! This basically means that no matter where the conductor is, we need to
-! set one full cell's worth of field values.
-!***********************************************************************
-!***********************************************************************
 ! Check boundary conditions along X
    
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Normal to, and inside of, conductor surface
+   ! ! Normal to, and inside of, conductor surface
+   ! Normal to conductor surface
    Bx(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, nozzle surface
-   Bx(1,:,:)=Bx0(1,:,:)
+   ! ! Normal to, and inside of, nozzle surface
+   ! Bx(1,:,:)=Bx0(1,:,:)
+   ! Normal to nozzle surface
+   Bx(1:NOZZLE_THICKNESS+1,:,:)=Bx0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
    
 END IF
@@ -608,14 +617,15 @@ END IF
 
 IF (yminp.EQ.ymin) THEN
 
-   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   Bx(:,1,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! Bx(:,1,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   Bx(:,1,:)=Bx0(:,1,:)
+   ! ! Tangent to nozzle surface
+   ! Bx(:,1,:)=Bx0(:,1,:)
+   Bx(:,1:NOZZLE_THICKNESS,:)=Bx0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -634,14 +644,15 @@ END IF
 
 IF (zminp.EQ.zmin) THEN
 
-   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   Bx(:,:,1)=0.0
-   END IF
+   ! IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! Bx(:,:,1)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   Bx(:,:,1)=Bx0(:,:,1)
+   ! ! Tangent to nozzle surface
+   ! Bx(:,:,1)=Bx0(:,:,1)
+   Bx(:,:,1:NOZZLE_THICKNESS)=Bx0(:,:,1:NOZZLE_THICKNESS)
    END IF
 
 END IF
@@ -704,14 +715,15 @@ DEALLOCATE(bufS2,bufR2)
 
 IF (xminp.EQ.xmin) THEN
 
-   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   By(1,:,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! By(1,:,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   By(1,:,:)=By0(1,:,:)
+   ! ! Tangent to nozzle surface
+   ! By(1,:,:)=By0(1,:,:)
+   By(1:NOZZLE_THICKNESS,:,:)=By0(1:NOZZLE_THICKNESS,:,:)
    END IF
 
 END IF
@@ -731,13 +743,15 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Normal to, and inside of, conductor surface
+   ! ! Normal to, and inside of, conductor surface
+   ! Normal to conductor surface
    By(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, nozzle surface
-   By(:,1,:)=By0(:,1,:)
+   ! ! Normal to, and inside of, nozzle surface
+   ! By(:,1,:)=By0(:,1,:)
+   By(:,1:NOZZLE_THICKNESS+1,:)=By0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
    
 END IF
@@ -756,14 +770,15 @@ END IF
 
 IF (zminp.EQ.zmin) THEN
 
-   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   By(:,:,1)=0.0
-   END IF
+   ! IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! By(:,:,1)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   By(:,:,1)=By0(:,:,1)
+   ! ! Tangent to nozzle surface
+   ! By(:,:,1)=By0(:,:,1)
+   By(:,:,1:NOZZLE_THICKNESS)=By0(:,:,1:NOZZLE_THICKNESS)
    END IF
 
 END IF
@@ -826,14 +841,15 @@ DEALLOCATE(bufS2,bufR2)
    
 IF (xminp.EQ.xmin) THEN
 
-   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   Bz(1,:,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! Bz(1,:,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   Bz(1,:,:)=Bz0(1,:,:)
+   ! ! Tangent to nozzle surface
+   ! Bz(1,:,:)=Bz0(1,:,:)
+   Bz(1:NOZZLE_THICKNESS,:,:)=Bz0(1:NOZZLE_THICKNESS,:,:)
    END IF
 
 END IF
@@ -852,14 +868,15 @@ END IF
 
 IF (yminp.EQ.ymin) THEN
 
-   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Tangent to conductor surface
-   Bz(:,1,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! ! Tangent to conductor surface
+   ! Bz(:,1,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Tangent to nozzle surface
-   Bz(:,1,:)=Bz0(:,1,:)
+   ! ! Tangent to nozzle surface
+   ! Bz(:,1,:)=Bz0(:,1,:)
+   Bz(:,1:NOZZLE_THICKNESS,:)=Bz0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -879,13 +896,15 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Normal to, and inside of, conductor surface
+   ! ! Normal to, and inside of, conductor surface
+   ! Normal to conductor surface
    Bz(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, nozzle surface
-   Bz(:,:,1)=Bz0(:,:,1)
+   ! ! Normal to, and inside of, nozzle surface
+   ! Bz(:,:,1)=Bz0(:,:,1)
+   Bz(:,:,1:NOZZLE_THICKNESS+1)=Bz0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
    
 END IF
@@ -1008,33 +1027,26 @@ ENDDO
 Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+bufR2(:,1)+bufR3(:))/4.0
    
 !***********************************************************************
-! JM note on boundary conditions:
-! Following convention for pulsar simulations, here a metallic boundary
-! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
-!
-! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
-!***********************************************************************
-!***********************************************************************
 ! Check boundary conditions along Y
 
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
 
-   ! DO iz=2,NZP
-   ! Bxg(:,1,iz)=(Bx(:,1,iz)+0.0+Bx(:,1,iz-1)+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Bxg(:,1,1)=(Bx(:,1,1)+0.0+BufR2(:,1)+0.0)/4.0
+   DO iz=2,NZP
+   Bxg(:,1,iz)=(Bx(:,1,iz)+0.0+Bx(:,1,iz-1)+0.0)/4.0
+   ENDDO
+   
+   Bxg(:,1,1)=(Bx(:,1,1)+0.0+BufR2(:,1)+0.0)/4.0
 
-   ! Parallel to, and inside of, conductor surface
-   Bxg(:,1,:)=0.0
+   ! ! Parallel to, and inside of, conductor surface
+   ! Bxg(:,1,:)=0.0
       
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Bxg(:,1,:)=Bxg0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   Bxg(:,1:NOZZLE_THICKNESS,:)=Bxg0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -1055,20 +1067,20 @@ IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
    
-   ! DO iy=2,NYP
-   ! Bxg(:,iy,1)=(Bx(:,iy,1)+Bx(:,iy-1,1)+0.0+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+0.0+0.0)/4.0
+   DO iy=2,NYP
+   Bxg(:,iy,1)=(Bx(:,iy,1)+Bx(:,iy-1,1)+0.0+0.0)/4.0
+   ENDDO
+   
+   Bxg(:,1,1)=(Bx(:,1,1)+bufR1(:,1)+0.0+0.0)/4.0
 
-   ! Parallel to, and inside of, conductor surface
-   Bxg(:,:,1)=0.0
+   ! ! Parallel to, and inside of, conductor surface
+   ! Bxg(:,:,1)=0.0
    
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Bxg(:,:,1)=Bxg0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   Bxg(:,:,1:NOZZLE_THICKNESS)=Bxg0(:,:,1:NOZZLE_THICKNESS)
    END IF
    
 END IF
@@ -1136,20 +1148,20 @@ IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
    
-   ! DO iz=2,NZP
-   ! Byg(1,:,iz)=(By(1,:,iz)+0.0+By(1,:,iz-1)+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Byg(1,:,1)=(By(1,:,1)+0.0+bufR2(1,:)+0.0)/4.0
+   DO iz=2,NZP
+   Byg(1,:,iz)=(By(1,:,iz)+0.0+By(1,:,iz-1)+0.0)/4.0
+   ENDDO
+   
+   Byg(1,:,1)=(By(1,:,1)+0.0+bufR2(1,:)+0.0)/4.0
 
-   ! Parallel to, and inside of, conductor surface
-   Byg(1,:,:)=0.0
+   ! ! Parallel to, and inside of, conductor surface
+   ! Byg(1,:,:)=0.0
    
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Byg(1,:,:)=Byg0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   Byg(1:NOZZLE_THICKNESS,:,:)=Byg0(1:NOZZLE_THICKNESS,:,:)
    END IF
    
 END IF
@@ -1170,20 +1182,21 @@ IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
 
-   ! DO ix=2,NXP
-   ! Byg(ix,:,1)=(By(ix,:,1)+By(ix-1,:,1)+0.0+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Byg(1,:,1)=(By(1,:,1)+BufR1(:,1)+0.0+0.0)/4.0
+   DO ix=2,NXP
+   Byg(ix,:,1)=(By(ix,:,1)+By(ix-1,:,1)+0.0+0.0)/4.0
+   ENDDO
+   
+   Byg(1,:,1)=(By(1,:,1)+BufR1(:,1)+0.0+0.0)/4.0
 
-   ! Parallel to, and inside of, conductor surface
-   Byg(:,:,1)=0.0
+   ! ! Parallel to, and inside of, conductor surface
+   ! Byg(:,:,1)=0.0
       
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Byg(:,:,1)=Byg0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Byg(:,:,1)=Byg0(:,:,1)
+   Byg(:,:,1:NOZZLE_THICKNESS)=Byg0(:,:,1:NOZZLE_THICKNESS)
    END IF
 
 END IF
@@ -1251,20 +1264,21 @@ IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
    
-   ! DO iy=2,NYP
-   ! Bzg(1,iy,:)=(Bz(1,iy,:)+0.0+Bz(1,iy-1,:)+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Bzg(1,1,:)=(Bz(1,1,:)+0.0+bufR1(1,:)+0.0)/4.0
+   DO iy=2,NYP
+   Bzg(1,iy,:)=(Bz(1,iy,:)+0.0+Bz(1,iy-1,:)+0.0)/4.0
+   ENDDO
+   
+   Bzg(1,1,:)=(Bz(1,1,:)+0.0+bufR1(1,:)+0.0)/4.0
 
-   ! Parallel to, and inside of, conductor surface
-   Bzg(1,:,:)=0.0
+   ! ! Parallel to, and inside of, conductor surface
+   ! Bzg(1,:,:)=0.0
    
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Bzg(1,:,:)=Bzg0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Bzg(1,:,:)=Bzg0(1,:,:)
+   Bzg(1:NOZZLE_THICKNESS,:,:)=Bzg0(1:NOZZLE_THICKNESS,:,:)
    END IF
    
 END IF
@@ -1285,20 +1299,21 @@ IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
 
-   ! DO ix=2,NXP
-   ! Bzg(ix,1,:)=(Bz(ix,1,:)+Bz(ix-1,1,:)+0.0+0.0)/4.0
-   ! ENDDO
-   ! 
-   ! Bzg(1,1,:)=(Bz(1,1,:)+BufR2(1,:)+0.0+0.0)/4.0
+   DO ix=2,NXP
+   Bzg(ix,1,:)=(Bz(ix,1,:)+Bz(ix-1,1,:)+0.0+0.0)/4.0
+   ENDDO
    
-   ! Parallel to, and inside of, conductor surface
-   Bzg(:,1,:)=0.0
+   Bzg(1,1,:)=(Bz(1,1,:)+BufR2(1,:)+0.0+0.0)/4.0
+   
+   ! ! Parallel to, and inside of, conductor surface
+   ! Bzg(:,1,:)=0.0
       
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Bzg(:,1,:)=Bzg0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Bzg(:,1,:)=Bzg0(:,1,:)
+   Bzg(:,1:NOZZLE_THICKNESS,:)=Bzg0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -1343,15 +1358,16 @@ Exg(1,:,:)=(Ex(1,:,:)+bufR2(:,:))/2.0
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! ! At the conductor surface
-   ! Exg(1,:,:)=(Ex(1,:,:)+0.0)/2.0
-   ! Normal to, and inside of, the conductor surface
-   Exg(1,:,:)=0.0
+   ! At the conductor surface
+   Exg(1,:,:)=(Ex(1,:,:)+0.0)/2.0
+   ! ! Normal to, and inside of, the conductor surface
+   ! Exg(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, the nozzle surface
-   Exg(1,:,:)=Exg0(1,:,:)
+   ! ! Normal to, and inside of, the nozzle surface
+   ! Exg(1,:,:)=Exg0(1,:,:)
+   Exg(1:NOZZLE_THICKNESS+1,:,:)=Exg0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
 
 END IF
@@ -1394,15 +1410,16 @@ Eyg(:,1,:)=(Ey(:,1,:)+bufR1(:,:))/2.0
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! ! At the conductor surface
-   ! Eyg(:,1,:)=(Ey(:,1,:)+0.0)/2.0
-   ! Normal to, and inside of, the conductor surface
-   Eyg(:,1,:)=0.0
+   ! At the conductor surface
+   Eyg(:,1,:)=(Ey(:,1,:)+0.0)/2.0
+   ! ! Normal to, and inside of, the conductor surface
+   ! Eyg(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, the nozzle surface
-   Eyg(:,1,:)=Eyg0(:,1,:)
+   ! ! Normal to, and inside of, the nozzle surface
+   ! Eyg(:,1,:)=Eyg0(:,1,:)
+   Eyg(:,1:NOZZLE_THICKNESS+1,:)=Eyg0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
 
 END IF
@@ -1445,15 +1462,16 @@ Ezg(:,:,1)=(Ez(:,:,1)+bufR1(:,:))/2.0
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! ! At the conductor surface
-   ! Ezg(:,:,1)=(Ez(:,:,1)+0.0)/2.0
-   ! Normal to, and inside of, the conductor surface
-   Ezg(:,:,1)=0.0
+   ! At the conductor surface
+   Ezg(:,:,1)=(Ez(:,:,1)+0.0)/2.0
+   ! ! Normal to, and inside of, the conductor surface
+   ! Ezg(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Normal to, and inside of, the nozzle surface
-   Ezg(:,:,1)=Ezg0(:,:,1)
+   ! ! Normal to, and inside of, the nozzle surface
+   ! Ezg(:,:,1)=Ezg0(:,:,1)
+   Ezg(:,:,1:NOZZLE_THICKNESS+1)=Ezg0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
 
 END IF
@@ -1504,7 +1522,7 @@ INTEGER, DIMENSION(MPI_STATUS_SIZE)            :: stat
 INTEGER                                        :: id,COMM,ierr
 INTEGER, DIMENSION(26)                         :: ngh
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex,Ey,Ez
-DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: rho,phi
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: rho,phi0,phif
 
 DOUBLE PRECISION, DIMENSION(1:NXP)             :: xgp
 DOUBLE PRECISION, DIMENSION(1:NYP)             :: ygp
@@ -1570,8 +1588,8 @@ CALL MPI_SENDRECV(bufSF2,NXP*NYP,MPI_DOUBLE_PRECISION,ngh(26),tag3,&
                   
 END IF
 
-! Electric potential phi
-phi=0.0
+! Electric potential phi0
+phi0=0.0
 
 !***********************************************************************
 ! Beginning iteration
@@ -1579,12 +1597,12 @@ phi=0.0
 
 DO iit=1,NIT
 
-bufSE1=phi(NXP-1,:,:)
-bufSW1=phi(2,:,:)
-bufSN1=phi(:,NYP-1,:)
-bufSS1=phi(:,2,:)
-bufSF1=phi(:,:,NZP-1)
-bufSB1=phi(:,:,2)
+bufSE1=phi0(NXP-1,:,:)
+bufSW1=phi0(2,:,:)
+bufSN1=phi0(:,NYP-1,:)
+bufSS1=phi0(:,2,:)
+bufSF1=phi0(:,:,NZP-1)
+bufSB1=phi0(:,:,2)
 
 IF (MOD(id,2).EQ.0) THEN
 
@@ -1631,10 +1649,10 @@ ENDIF
   DO ix=2,NXP-1
     DO iy=2,NYP-1
       DO iz=2,NZP-1
-        phi(ix,iy,iz)=0.5/denom*(&
-                      (phi(ix+1,iy,iz)+phi(ix-1,iy,iz))*dy*dy*dz*dz+&
-                      (phi(ix,iy+1,iz)+phi(ix,iy-1,iz))*dx*dx*dz*dz+&
-                      (phi(ix,iy,iz+1)+phi(ix,iy,iz-1))*dx*dx*dy*dy+&
+        phif(ix,iy,iz)=0.5/denom*(&
+                      (phi0(ix+1,iy,iz)+phi0(ix-1,iy,iz))*dy*dy*dz*dz+&
+                      (phi0(ix,iy+1,iz)+phi0(ix,iy-1,iz))*dx*dx*dz*dz+&
+                      (phi0(ix,iy,iz+1)+phi0(ix,iy,iz-1))*dx*dx*dy*dy+&
                       (4.0*pi*rho(ix,iy,iz)-&
                       ((Ex(ix,iy,iz)-Ex(ix-1,iy,iz))/dx+&
                        (Ey(ix,iy,iz)-Ey(ix,iy-1,iz))/dy+&
@@ -1650,10 +1668,10 @@ ENDIF
   ! Surface ix=1
   DO iy=2,NYP-1
     DO iz=2,NZP-1
-      phi(1,iy,iz)=0.5/denom*(&
-                   (phi(2,iy,iz)+bufRW1(iy,iz))*dy*dy*dz*dz+&
-                   (phi(1,iy+1,iz)+phi(1,iy-1,iz))*dx*dx*dz*dz+&
-                   (phi(1,iy,iz+1)+phi(1,iy,iz-1))*dx*dx*dy*dy+&
+      phif(1,iy,iz)=0.5/denom*(&
+                   (phi0(2,iy,iz)+bufRW1(iy,iz))*dy*dy*dz*dz+&
+                   (phi0(1,iy+1,iz)+phi0(1,iy-1,iz))*dx*dx*dz*dz+&
+                   (phi0(1,iy,iz+1)+phi0(1,iy,iz-1))*dx*dx*dy*dy+&
                    (4.0*pi*rho(1,iy,iz)-&
                    ((Ex(1,iy,iz)-bufRW2(iy,iz))/dx+&
                     (Ey(1,iy,iz)-Ey(1,iy-1,iz))/dy+&
@@ -1665,10 +1683,10 @@ ENDIF
   ! Surface iy=1
   DO ix=2,NXP-1
     DO iz=2,NZP-1
-      phi(ix,1,iz)=0.5/denom*(&
-                   (phi(ix+1,1,iz)+phi(ix-1,1,iz))*dy*dy*dz*dz+&
-                   (phi(ix,2,iz)+bufRS1(ix,iz))*dx*dx*dz*dz+&
-                   (phi(ix,1,iz+1)+phi(ix,1,iz-1))*dx*dx*dy*dy+&
+      phif(ix,1,iz)=0.5/denom*(&
+                   (phi0(ix+1,1,iz)+phi0(ix-1,1,iz))*dy*dy*dz*dz+&
+                   (phi0(ix,2,iz)+bufRS1(ix,iz))*dx*dx*dz*dz+&
+                   (phi0(ix,1,iz+1)+phi0(ix,1,iz-1))*dx*dx*dy*dy+&
                    (4.0*pi*rho(ix,1,iz)-&
                    ((Ex(ix,1,iz)-Ex(ix-1,1,iz))/dx+&
                     (Ey(ix,1,iz)-bufRS2(ix,iz))/dy+&
@@ -1680,10 +1698,10 @@ ENDIF
   ! Surface iz=1
   DO ix=2,NXP-1
     DO iy=2,NYP-1
-      phi(ix,iy,1)=0.5/denom*(&
-                   (phi(ix+1,iy,1)+phi(ix-1,iy,1))*dy*dy*dz*dz+&
-                   (phi(ix,iy+1,1)+phi(ix,iy-1,1))*dx*dx*dz*dz+&
-                   (phi(ix,iy,2)+bufRB1(ix,iy))*dx*dx*dy*dy+&
+      phif(ix,iy,1)=0.5/denom*(&
+                   (phi0(ix+1,iy,1)+phi0(ix-1,iy,1))*dy*dy*dz*dz+&
+                   (phi0(ix,iy+1,1)+phi0(ix,iy-1,1))*dx*dx*dz*dz+&
+                   (phi0(ix,iy,2)+bufRB1(ix,iy))*dx*dx*dy*dy+&
                    (4.0*pi*rho(ix,iy,1)-&
                    ((Ex(ix,iy,1)-Ex(ix-1,iy,1))/dx+&
                     (Ey(ix,iy,1)-Ey(ix,iy-1,1))/dy+&
@@ -1695,10 +1713,10 @@ ENDIF
   ! Surface ix=NXP
   DO iy=2,NYP-1
     DO iz=2,NZP-1
-      phi(NXP,iy,iz)=0.5/denom*(&
-                    (bufRE1(iy,iz)+phi(NXP-1,iy,iz))*dy*dy*dz*dz+&
-                    (phi(NXP,iy+1,iz)+phi(NXP,iy-1,iz))*dx*dx*dz*dz+&
-                    (phi(NXP,iy,iz+1)+phi(NXP,iy,iz-1))*dx*dx*dy*dy+&
+      phif(NXP,iy,iz)=0.5/denom*(&
+                    (bufRE1(iy,iz)+phi0(NXP-1,iy,iz))*dy*dy*dz*dz+&
+                    (phi0(NXP,iy+1,iz)+phi0(NXP,iy-1,iz))*dx*dx*dz*dz+&
+                    (phi0(NXP,iy,iz+1)+phi0(NXP,iy,iz-1))*dx*dx*dy*dy+&
                     (4.0*pi*rho(NXP,iy,iz)-&
                     ((Ex(NXP,iy,iz)-Ex(NXP-1,iy,iz))/dx+&
                      (Ey(NXP,iy,iz)-Ey(NXP,iy-1,iz))/dy+&
@@ -1710,10 +1728,10 @@ ENDIF
   ! Surface iy=NYP
   DO ix=2,NXP-1
     DO iz=2,NZP-1
-      phi(ix,NYP,iz)=0.5/denom*(&
-                     (phi(ix+1,NYP,iz)+phi(ix-1,NYP,iz))*dy*dy*dz*dz+&
-                     (bufRN1(ix,iz)+phi(ix,NYP-1,iz))*dx*dx*dz*dz+&
-                     (phi(ix,NYP,iz+1)+phi(ix,NYP,iz-1))*dx*dx*dy*dy+&
+      phif(ix,NYP,iz)=0.5/denom*(&
+                     (phi0(ix+1,NYP,iz)+phi0(ix-1,NYP,iz))*dy*dy*dz*dz+&
+                     (bufRN1(ix,iz)+phi0(ix,NYP-1,iz))*dx*dx*dz*dz+&
+                     (phi0(ix,NYP,iz+1)+phi0(ix,NYP,iz-1))*dx*dx*dy*dy+&
                      (4.0*pi*rho(ix,NYP,iz)-&
                       ((Ex(ix,NYP,iz)-Ex(ix-1,NYP,iz))/dx+&
                        (Ey(ix,NYP,iz)-Ey(ix,NYP-1,iz))/dy+&
@@ -1725,10 +1743,10 @@ ENDIF
   ! Surface iz=NZP
   DO ix=2,NXP-1
     DO iy=2,NYP-1
-      phi(ix,iy,NZP)=0.5/denom*(&
-                     (phi(ix+1,iy,NZP)+phi(ix-1,iy,NZP))*dy*dy*dz*dz+&
-                     (phi(ix,iy+1,NZP)+phi(ix,iy-1,NZP))*dx*dx*dz*dz+&
-                     (bufRF1(ix,iy)+phi(ix,iy,NZP-1))*dx*dx*dy*dy+&
+      phif(ix,iy,NZP)=0.5/denom*(&
+                     (phi0(ix+1,iy,NZP)+phi0(ix-1,iy,NZP))*dy*dy*dz*dz+&
+                     (phi0(ix,iy+1,NZP)+phi0(ix,iy-1,NZP))*dx*dx*dz*dz+&
+                     (bufRF1(ix,iy)+phi0(ix,iy,NZP-1))*dx*dx*dy*dy+&
                      (4.0*pi*rho(ix,iy,NZP)-&
                      ((Ex(ix,iy,NZP)-Ex(ix-1,iy,NZP))/dx+&
                       (Ey(ix,iy,NZP)-Ey(ix,iy-1,NZP))/dy+&
@@ -1741,10 +1759,10 @@ ENDIF
 ! Aretes of the cube
 
   DO ix=2,NXP-1
-    phi(ix,1,1)=0.5/denom*(&
-                (phi(ix+1,1,1)+phi(ix-1,1,1))*dy*dy*dz*dz+&
-                (phi(ix,2,1)+bufRS1(ix,1))*dx*dx*dz*dz+&
-                (phi(ix,1,2)+bufRB1(ix,1))*dx*dx*dy*dy+&
+    phif(ix,1,1)=0.5/denom*(&
+                (phi0(ix+1,1,1)+phi0(ix-1,1,1))*dy*dy*dz*dz+&
+                (phi0(ix,2,1)+bufRS1(ix,1))*dx*dx*dz*dz+&
+                (phi0(ix,1,2)+bufRB1(ix,1))*dx*dx*dy*dy+&
                 (4.0*pi*rho(ix,1,1)-&
                 ((Ex(ix,1,1)-Ex(ix-1,1,1))/dx+&
                  (Ey(ix,1,1)-bufRS2(ix,1))/dy+&
@@ -1753,10 +1771,10 @@ ENDIF
   ENDDO
 
   DO ix=2,NXP-1
-    phi(ix,NYP,NZP)=0.5/denom*(&
-                    (phi(ix+1,NYP,NZP)+phi(ix-1,NYP,NZP))*dy*dy*dz*dz+&
-                    (bufRN1(ix,NZP)+phi(ix,NYP-1,NZP))*dx*dx*dz*dz+&
-                    (bufRF1(ix,NYP)+phi(ix,NYP,NZP-1))*dx*dx*dy*dy+&
+    phif(ix,NYP,NZP)=0.5/denom*(&
+                    (phi0(ix+1,NYP,NZP)+phi0(ix-1,NYP,NZP))*dy*dy*dz*dz+&
+                    (bufRN1(ix,NZP)+phi0(ix,NYP-1,NZP))*dx*dx*dz*dz+&
+                    (bufRF1(ix,NYP)+phi0(ix,NYP,NZP-1))*dx*dx*dy*dy+&
                     (4.0*pi*rho(ix,NYP,NZP)-&
                     ((Ex(ix,NYP,NZP)-Ex(ix-1,NYP,NZP))/dx+&
                      (Ey(ix,NYP,NZP)-Ey(ix,NYP-1,NZP))/dy+&
@@ -1765,10 +1783,10 @@ ENDIF
   ENDDO
 
   DO ix=2,NXP-1
-    phi(ix,NYP,1)=0.5/denom*(&
-                  (phi(ix+1,NYP,1)+phi(ix-1,NYP,1))*dy*dy*dz*dz+&
-                  (bufRN1(ix,1)+phi(ix,NYP-1,1))*dx*dx*dz*dz+&
-                  (phi(ix,NYP,2)+bufRB1(ix,NYP))*dx*dx*dy*dy+&
+    phif(ix,NYP,1)=0.5/denom*(&
+                  (phi0(ix+1,NYP,1)+phi0(ix-1,NYP,1))*dy*dy*dz*dz+&
+                  (bufRN1(ix,1)+phi0(ix,NYP-1,1))*dx*dx*dz*dz+&
+                  (phi0(ix,NYP,2)+bufRB1(ix,NYP))*dx*dx*dy*dy+&
                   (4.0*pi*rho(ix,NYP,1)-&
                   ((Ex(ix,NYP,1)-Ex(ix-1,NYP,1))/dx+&
                    (Ey(ix,NYP,1)-Ey(ix,NYP-1,1))/dy+&
@@ -1777,10 +1795,10 @@ ENDIF
   ENDDO
 
   DO ix=2,NXP-1
-    phi(ix,1,NZP)=0.5/denom*(&
-                  (phi(ix+1,1,NZP)+phi(ix-1,1,NZP))*dy*dy*dz*dz+&
-                  (phi(ix,2,NZP)+bufRS1(ix,NZP))*dx*dx*dz*dz+&
-                  (bufRF1(ix,1)+phi(ix,1,NZP-1))*dx*dx*dy*dy+&
+    phif(ix,1,NZP)=0.5/denom*(&
+                  (phi0(ix+1,1,NZP)+phi0(ix-1,1,NZP))*dy*dy*dz*dz+&
+                  (phi0(ix,2,NZP)+bufRS1(ix,NZP))*dx*dx*dz*dz+&
+                  (bufRF1(ix,1)+phi0(ix,1,NZP-1))*dx*dx*dy*dy+&
                   (4.0*pi*rho(ix,1,NZP)-&
                   ((Ex(ix,1,NZP)-Ex(ix-1,1,NZP))/dx+&
                    (Ey(ix,1,NZP)-bufRS2(ix,NZP))/dy+&
@@ -1789,10 +1807,10 @@ ENDIF
   ENDDO
 
   DO iz=2,NZP-1
-    phi(1,1,iz)=0.5/denom*(&
-                (phi(2,1,iz)+bufRW1(1,iz))*dy*dy*dz*dz+&
-                (phi(1,2,iz)+bufRS1(1,iz))*dx*dx*dz*dz+&
-                (phi(1,1,iz+1)+phi(1,1,iz-1))*dx*dx*dy*dy+&
+    phif(1,1,iz)=0.5/denom*(&
+                (phi0(2,1,iz)+bufRW1(1,iz))*dy*dy*dz*dz+&
+                (phi0(1,2,iz)+bufRS1(1,iz))*dx*dx*dz*dz+&
+                (phi0(1,1,iz+1)+phi0(1,1,iz-1))*dx*dx*dy*dy+&
                 (4.0*pi*rho(1,1,iz)-&
                 ((Ex(1,1,iz)-bufRW2(1,iz))/dx+&
                  (Ey(1,1,iz)-bufRS2(1,iz))/dy+&
@@ -1801,10 +1819,10 @@ ENDIF
   ENDDO
 
   DO iz=2,NZP-1
-    phi(1,NYP,iz)=0.5/denom*(&
-                  (phi(2,NYP,iz)+bufRW1(NYP,iz))*dy*dy*dz*dz+&
-                  (bufRN1(1,iz)+phi(1,NYP-1,iz))*dx*dx*dz*dz+&
-                  (phi(1,NYP,iz+1)+phi(1,NYP,iz-1))*dx*dx*dy*dy+&
+    phif(1,NYP,iz)=0.5/denom*(&
+                  (phi0(2,NYP,iz)+bufRW1(NYP,iz))*dy*dy*dz*dz+&
+                  (bufRN1(1,iz)+phi0(1,NYP-1,iz))*dx*dx*dz*dz+&
+                  (phi0(1,NYP,iz+1)+phi0(1,NYP,iz-1))*dx*dx*dy*dy+&
                   (4.0*pi*rho(1,NYP,iz)-&
                   ((Ex(1,NYP,iz)-bufRW2(NYP,iz))/dx+&
                    (Ey(1,NYP,iz)-Ey(1,NYP-1,iz))/dy+&
@@ -1813,10 +1831,10 @@ ENDIF
   ENDDO
 
   DO iz=2,NZP-1
-    phi(NXP,1,iz)=0.5/denom*(&
-                  (bufRE1(1,iz)+phi(NXP-1,1,iz))*dy*dy*dz*dz+&
-                  (phi(NXP,2,iz)+bufRS1(NXP,iz))*dx*dx*dz*dz+&
-                  (phi(NXP,1,iz+1)+phi(NXP,1,iz-1))*dx*dx*dy*dy+&
+    phif(NXP,1,iz)=0.5/denom*(&
+                  (bufRE1(1,iz)+phi0(NXP-1,1,iz))*dy*dy*dz*dz+&
+                  (phi0(NXP,2,iz)+bufRS1(NXP,iz))*dx*dx*dz*dz+&
+                  (phi0(NXP,1,iz+1)+phi0(NXP,1,iz-1))*dx*dx*dy*dy+&
                   (4.0*pi*rho(NXP,1,iz)-&
                   ((Ex(NXP,1,iz)-Ex(NXP-1,1,iz))/dx+&
                    (Ey(NXP,1,iz)-bufRS2(NXP,iz))/dy+&
@@ -1825,10 +1843,10 @@ ENDIF
   ENDDO
 
   DO iz=2,NZP-1
-    phi(NXP,NYP,iz)=0.5/denom*(&
-                    (bufRE1(NYP,iz)+phi(NXP-1,NYP,iz))*dy*dy*dz*dz+&
-                    (bufRN1(NXP,iz)+phi(NXP,NYP-1,iz))*dx*dx*dz*dz+&
-                    (phi(NXP,NYP,iz+1)+phi(NXP,NYP,iz-1))*dx*dx*dy*dy+&
+    phif(NXP,NYP,iz)=0.5/denom*(&
+                    (bufRE1(NYP,iz)+phi0(NXP-1,NYP,iz))*dy*dy*dz*dz+&
+                    (bufRN1(NXP,iz)+phi0(NXP,NYP-1,iz))*dx*dx*dz*dz+&
+                    (phi0(NXP,NYP,iz+1)+phi0(NXP,NYP,iz-1))*dx*dx*dy*dy+&
                     (4.0*pi*rho(NXP,NYP,iz)-&
                     ((Ex(NXP,NYP,iz)-Ex(NXP-1,NYP,iz))/dx+&
                      (Ey(NXP,NYP,iz)-Ey(NXP,NYP-1,iz))/dy+&
@@ -1837,10 +1855,10 @@ ENDIF
   ENDDO
 
   DO iy=2,NYP-1
-    phi(1,iy,1)=0.5/denom*(&
-                (phi(2,iy,1)+bufRW1(iy,1))*dy*dy*dz*dz+&
-                (phi(1,iy+1,1)+phi(1,iy-1,1))*dx*dx*dz*dz+&
-                (phi(1,iy,2)+bufRB1(1,iy))*dx*dx*dy*dy+&
+    phif(1,iy,1)=0.5/denom*(&
+                (phi0(2,iy,1)+bufRW1(iy,1))*dy*dy*dz*dz+&
+                (phi0(1,iy+1,1)+phi0(1,iy-1,1))*dx*dx*dz*dz+&
+                (phi0(1,iy,2)+bufRB1(1,iy))*dx*dx*dy*dy+&
                 (4.0*pi*rho(1,iy,1)-&
                 ((Ex(2,iy,1)-bufRW2(iy,1))/dx+&
                  (Ey(1,iy+1,1)-Ey(1,iy-1,1))/dy+&
@@ -1849,10 +1867,10 @@ ENDIF
   ENDDO
 
   DO iy=2,NYP-1
-    phi(1,iy,NZP)=0.5/denom*(&
-                  (phi(2,iy,NZP)+bufRW1(iy,NZP))*dy*dy*dz*dz+&
-                  (phi(1,iy+1,NZP)+phi(1,iy-1,NZP))*dx*dx*dz*dz+&
-                  (bufRF1(1,iy)+phi(1,iy,NZP-1))*dx*dx*dy*dy+&
+    phif(1,iy,NZP)=0.5/denom*(&
+                  (phi0(2,iy,NZP)+bufRW1(iy,NZP))*dy*dy*dz*dz+&
+                  (phi0(1,iy+1,NZP)+phi0(1,iy-1,NZP))*dx*dx*dz*dz+&
+                  (bufRF1(1,iy)+phi0(1,iy,NZP-1))*dx*dx*dy*dy+&
                   (4.0*pi*rho(1,iy,NZP)-&
                   ((Ex(1,iy,NZP)-bufRW2(iy,NZP))/dx+&
                    (Ey(1,iy,NZP)-Ey(1,iy-1,NZP))/dy+&
@@ -1861,10 +1879,10 @@ ENDIF
   ENDDO
 
   DO iy=2,NYP-1
-    phi(NXP,iy,1)=0.5/denom*(&
-                  (bufRE1(iy,1)+phi(NXP-1,iy,1))*dy*dy*dz*dz+&
-                  (phi(NXP,iy+1,1)+phi(NXP,iy-1,1))*dx*dx*dz*dz+&
-                  (phi(NXP,iy,2)+bufRB1(NXP,iy))*dx*dx*dy*dy+&
+    phif(NXP,iy,1)=0.5/denom*(&
+                  (bufRE1(iy,1)+phi0(NXP-1,iy,1))*dy*dy*dz*dz+&
+                  (phi0(NXP,iy+1,1)+phi0(NXP,iy-1,1))*dx*dx*dz*dz+&
+                  (phi0(NXP,iy,2)+bufRB1(NXP,iy))*dx*dx*dy*dy+&
                   (4.0*pi*rho(NXP,iy,1)-&
                   ((Ex(NXP,iy,1)-Ex(NXP-1,iy,1))/dx+&
                    (Ey(NXP,iy,1)-Ey(NXP,iy-1,1))/dy+&
@@ -1873,10 +1891,10 @@ ENDIF
   ENDDO
 
   DO iy=2,NYP-1
-    phi(NXP,iy,NZP)=0.5/denom*(&
-                    (bufRE1(iy,NZP)+phi(NXP-1,iy,NZP))*dy*dy*dz*dz+&
-                    (phi(NXP,iy+1,NZP)+phi(NXP,iy-1,NZP))*dx*dx*dz*dz+&
-                    (bufRF1(NXP,iy)+phi(NXP,iy,NZP-1))*dx*dx*dy*dy+&
+    phif(NXP,iy,NZP)=0.5/denom*(&
+                    (bufRE1(iy,NZP)+phi0(NXP-1,iy,NZP))*dy*dy*dz*dz+&
+                    (phi0(NXP,iy+1,NZP)+phi0(NXP,iy-1,NZP))*dx*dx*dz*dz+&
+                    (bufRF1(NXP,iy)+phi0(NXP,iy,NZP-1))*dx*dx*dy*dy+&
                     (4.0*pi*rho(NXP,iy,NZP)-&
                     ((Ex(NXP,iy,NZP)-Ex(NXP-1,iy,NZP))/dx+&
                      (Ey(NXP,iy,NZP)-Ey(NXP,iy-1,NZP))/dy+&
@@ -1887,80 +1905,80 @@ ENDIF
 !***********************************************************************
 ! Corners
 
-  phi(1,1,1)=0.5/denom*(&
-             (phi(2,1,1)+bufRW1(1,1))*dy*dy*dz*dz+&
-             (phi(1,2,1)+bufRS1(1,1))*dx*dx*dz*dz+&
-             (phi(1,1,2)+bufRB1(1,1))*dx*dx*dy*dy+&
+  phif(1,1,1)=0.5/denom*(&
+             (phi0(2,1,1)+bufRW1(1,1))*dy*dy*dz*dz+&
+             (phi0(1,2,1)+bufRS1(1,1))*dx*dx*dz*dz+&
+             (phi0(1,1,2)+bufRB1(1,1))*dx*dx*dy*dy+&
              (4.0*pi*rho(1,1,1)-&
              ((Ex(1,1,1)-bufRW2(1,1))/dx+&
               (Ey(1,1,1)-bufRS2(1,1))/dy+&
               (Ez(1,1,1)-bufRB2(1,1))/dz))*&
              dx*dx*dy*dy*dz*dz)
 
-  phi(NXP,1,1)=0.5/denom*(&
-               (bufRE1(1,1)+phi(NXP-1,1,1))*dy*dy*dz*dz+&
-               (phi(NXP,2,1)+bufRS1(NXP,1))*dx*dx*dz*dz+&
-               (phi(NXP,1,2)+bufRB1(NXP,1))*dx*dx*dy*dy+&
+  phif(NXP,1,1)=0.5/denom*(&
+               (bufRE1(1,1)+phi0(NXP-1,1,1))*dy*dy*dz*dz+&
+               (phi0(NXP,2,1)+bufRS1(NXP,1))*dx*dx*dz*dz+&
+               (phi0(NXP,1,2)+bufRB1(NXP,1))*dx*dx*dy*dy+&
                (4.0*pi*rho(NXP,1,1)-&
                ((Ex(NXP,1,1)-Ex(NXP-1,1,1))/dx+&
                 (Ey(NXP,1,1)-bufRS2(NXP,1))/dy+&
                 (Ez(NXP,1,1)-bufRB2(NXP,1))/dz))*&
                dx*dx*dy*dy*dz*dz)
 
-  phi(1,NYP,1)=0.5/denom*(&
-               (phi(2,NYP,1)+bufRW1(NYP,1))*dy*dy*dz*dz+&
-               (bufRN1(1,1)+phi(1,NYP-1,1))*dx*dx*dz*dz+&
-               (phi(1,NYP,2)+bufRB1(1,NYP))*dx*dx*dy*dy+&
+  phif(1,NYP,1)=0.5/denom*(&
+               (phi0(2,NYP,1)+bufRW1(NYP,1))*dy*dy*dz*dz+&
+               (bufRN1(1,1)+phi0(1,NYP-1,1))*dx*dx*dz*dz+&
+               (phi0(1,NYP,2)+bufRB1(1,NYP))*dx*dx*dy*dy+&
                (4.0*pi*rho(1,NYP,1)-&
                ((Ex(1,NYP,1)-bufRW2(NYP,1))/dx+&
                 (Ey(1,NYP,1)-Ey(1,NYP-1,1))/dy+&
                 (Ez(1,NYP,1)-bufRB2(1,NYP))/dz))*&
                dx*dx*dy*dy*dz*dz)
 
-  phi(1,1,NZP)=0.5/denom*(&
-               (phi(2,1,NZP)+bufRW1(1,NZP))*dy*dy*dz*dz+&
-               (phi(1,2,NZP)+bufRS1(1,NZP))*dx*dx*dz*dz+&
-               (bufRF1(1,1)+phi(1,1,NZP-1))*dx*dx*dy*dy+&
+  phif(1,1,NZP)=0.5/denom*(&
+               (phi0(2,1,NZP)+bufRW1(1,NZP))*dy*dy*dz*dz+&
+               (phi0(1,2,NZP)+bufRS1(1,NZP))*dx*dx*dz*dz+&
+               (bufRF1(1,1)+phi0(1,1,NZP-1))*dx*dx*dy*dy+&
                (4.0*pi*rho(1,1,NZP)-&
                ((Ex(1,1,NZP)-bufRW2(1,NZP))/dx+&
                 (Ey(1,1,NZP)-bufRS2(1,NZP))/dy+&
                 (Ez(1,1,NZP)-Ez(1,1,NZP-1))/dz))*&
                dx*dx*dy*dy*dz*dz)
 
-  phi(NXP,NYP,1)=0.5/denom*(&
-                 (bufRE1(NYP,1)+phi(NXP-1,NYP,1))*dy*dy*dz*dz+&
-                 (bufRN1(NXP,1)+phi(NXP,NYP-1,1))*dx*dx*dz*dz+&
-                 (phi(NXP,NYP,2)+bufRB1(NXP,NYP))*dx*dx*dy*dy+&
+  phif(NXP,NYP,1)=0.5/denom*(&
+                 (bufRE1(NYP,1)+phi0(NXP-1,NYP,1))*dy*dy*dz*dz+&
+                 (bufRN1(NXP,1)+phi0(NXP,NYP-1,1))*dx*dx*dz*dz+&
+                 (phi0(NXP,NYP,2)+bufRB1(NXP,NYP))*dx*dx*dy*dy+&
                  (4.0*pi*rho(NXP,NYP,1)-&
                  ((Ex(NXP,NYP,1)-Ex(NXP-1,NYP,1))/dx+&
                   (Ey(NXP,NYP,1)-Ey(NXP,NYP-1,1))/dy+&
                   (Ez(NXP,NYP,1)-bufRB2(NXP,NYP))/dz))*&
                  dx*dx*dy*dy*dz*dz)
 
-  phi(1,NYP,NZP)=0.5/denom*(&
-                 (phi(2,NYP,NZP)+bufRW1(NYP,NZP))*dy*dy*dz*dz+&
-                 (bufRN1(1,NZP)+phi(1,NYP-1,NZP))*dx*dx*dz*dz+&
-                 (bufRF1(1,NYP)+phi(1,NYP,NZP-1))*dx*dx*dy*dy+&
+  phif(1,NYP,NZP)=0.5/denom*(&
+                 (phi0(2,NYP,NZP)+bufRW1(NYP,NZP))*dy*dy*dz*dz+&
+                 (bufRN1(1,NZP)+phi0(1,NYP-1,NZP))*dx*dx*dz*dz+&
+                 (bufRF1(1,NYP)+phi0(1,NYP,NZP-1))*dx*dx*dy*dy+&
                  (4.0*pi*rho(1,NYP,NZP)-&
                  ((Ex(1,NYP,NZP)-bufRW2(NYP,NZP))/dx+&
                   (Ey(1,NYP,NZP)-Ey(1,NYP-1,NZP))/dy+&
                   (Ez(1,NYP,NZP)-Ez(1,NYP,NZP-1))/dz))*&
                  dx*dx*dy*dy*dz*dz)
 
-  phi(NXP,1,NZP)=0.5/denom*(&
-                 (bufRE1(1,NZP)+phi(NXP-1,1,NZP))*dy*dy*dz*dz+&
-                 (phi(NXP,2,NZP)+bufRS1(NXP,NZP))*dx*dx*dz*dz+&
-                 (bufRF1(NXP,1)+phi(NXP,1,NZP-1))*dx*dx*dy*dy+&
+  phif(NXP,1,NZP)=0.5/denom*(&
+                 (bufRE1(1,NZP)+phi0(NXP-1,1,NZP))*dy*dy*dz*dz+&
+                 (phi0(NXP,2,NZP)+bufRS1(NXP,NZP))*dx*dx*dz*dz+&
+                 (bufRF1(NXP,1)+phi0(NXP,1,NZP-1))*dx*dx*dy*dy+&
                  (4.0*pi*rho(NXP,1,NZP)-&
                  ((Ex(NXP,1,NZP)-Ex(NXP-1,1,NZP))/dx+&
                   (Ey(NXP,1,NZP)-bufRS2(NXP,NZP))/dy+&
                   (Ez(NXP,1,NZP)-Ez(NXP,1,NZP-1))/dz))*&
                  dx*dx*dy*dy*dz*dz)
 
-  phi(NXP,NYP,NZP)=0.5/denom*(&
-                   (bufRE1(NYP,NZP)+phi(NXP-1,NYP,NZP))*dy*dy*dz*dz+&
-                   (bufRN1(NXP,NZP)+phi(NXP,NYP-1,NZP))*dx*dx*dz*dz+&
-                   (bufRF1(NXP,NYP)+phi(NXP,NYP,NZP-1))*dx*dx*dy*dy+&
+  phif(NXP,NYP,NZP)=0.5/denom*(&
+                   (bufRE1(NYP,NZP)+phi0(NXP-1,NYP,NZP))*dy*dy*dz*dz+&
+                   (bufRN1(NXP,NZP)+phi0(NXP,NYP-1,NZP))*dx*dx*dz*dz+&
+                   (bufRF1(NXP,NYP)+phi0(NXP,NYP,NZP-1))*dx*dx*dy*dy+&
                    (4.0*pi*rho(NXP,NYP,NZP)-&
                    ((Ex(NXP,NYP,NZP)-Ex(NXP-1,NYP,NZP))/dx+&
                     (Ey(NXP,NYP,NZP)-Ey(NXP,NYP-1,NZP))/dy+&
@@ -1973,7 +1991,11 @@ ENDIF
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   phi(1,:,:)=0.0
+   phif(1,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
+   phif(1:NOZZLE_THICKNESS+1,:,:)=0.0
    END IF
 
 END IF
@@ -1981,7 +2003,7 @@ END IF
 IF (xmaxp.EQ.xmax) THEN
 
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
-   phi(NXP,:,:)=0.0
+   phif(NXP,:,:)=0.0
    END IF
 
 END IF
@@ -1992,7 +2014,11 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   phi(:,1,:)=0.0
+   phif(:,1,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
+   phif(:,1:NOZZLE_THICKNESS+1,:)=0.0
    END IF
 
 END IF
@@ -2000,7 +2026,7 @@ END IF
 IF (ymaxp.EQ.ymax) THEN
    
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
-   phi(:,NYP,:)=0.0
+   phif(:,NYP,:)=0.0
    END IF
 
 END IF
@@ -2011,7 +2037,11 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   phi(:,:,1)=0.0
+   phif(:,:,1)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
+   phif(:,:,1:NOZZLE_THICKNESS+1)=0.0
    END IF
 
 END IF
@@ -2019,10 +2049,12 @@ END IF
 IF (zmaxp.EQ.zmax) THEN
    
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
-   phi(:,:,NZP)=0.0
+   phif(:,:,NZP)=0.0
    END IF
 
 END IF
+
+phi0(:,:,:)=phif(:,:,:)
 
 !***********************************************************************
 
@@ -2032,9 +2064,9 @@ ENDDO
 ! Corrected nodal electric field
 !***********************************************************************
 
-bufSW1(:,:)=phi(2,:,:)
-bufSS1(:,:)=phi(:,2,:)
-bufSB1(:,:)=phi(:,:,2)
+bufSW1(:,:)=phif(2,:,:)
+bufSS1(:,:)=phif(:,2,:)
+bufSB1(:,:)=phif(:,:,2)
 
 IF (MOD(id,2).EQ.0) THEN
 
@@ -2064,31 +2096,23 @@ END IF
 ! Ex
 
 DO ix=1,NXP-1
-Ex(ix,:,:)=Ex(ix,:,:)-(phi(ix+1,:,:)-phi(ix,:,:))/dx
+Ex(ix,:,:)=Ex(ix,:,:)-(phif(ix+1,:,:)-phif(ix,:,:))/dx
 ENDDO
 
-!***********************************************************************
-! JM note on boundary conditions:
-! Following convention for pulsar simulations, here a metallic boundary
-! at a coordinate minimum -- e.g. xmin -- lies at xmin+dx
-!
-! BUT at a coordinate maximum -- e.g. xmax -- it lies at xmax
-! This basically means that no matter where the conductor is, we need to
-! set one full cell's worth of field values.
-!***********************************************************************
 !***********************************************************************
 ! Check boundary conditions along X
 
 IF (xminp.EQ.xmin) THEN
 
-   IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ex(1,:,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ex(1,:,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ex(1,:,:)=Ex0(1,:,:)
+   ! ! Normal to nozzle surface
+   ! Ex(1,:,:)=Ex0(1,:,:)
+   Ex(1:NOZZLE_THICKNESS,:,:)=Ex0(1:NOZZLE_THICKNESS,:,:)
    END IF
 
 END IF
@@ -2104,7 +2128,7 @@ IF (xmaxp.EQ.xmax.AND.BOUND_FIELD_XMAX.NE."PERIODIC") THEN
 ELSE
 
 ! ix=NXP
-Ex(NXP,:,:)=Ex(NXP,:,:)-(bufRE1(:,:)-phi(NXP,:,:))/dx
+Ex(NXP,:,:)=Ex(NXP,:,:)-(bufRE1(:,:)-phif(NXP,:,:))/dx
 
 END IF
 
@@ -2114,13 +2138,15 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ex(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ex(:,1,:)=Ex0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ex(:,1,:)=Ex0(:,1,:)
+   Ex(:,1:NOZZLE_THICKNESS+1,:)=Ex0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
 
 END IF
@@ -2140,13 +2166,15 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ex(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ex(:,:,1)=Ex0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ex(:,:,1)=Ex0(:,:,1)
+   Ex(:,:,1:NOZZLE_THICKNESS+1)=Ex0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
 
 END IF
@@ -2164,7 +2192,7 @@ END IF
 ! Ey
 
 DO iy=1,NYP-1
-Ey(:,iy,:)=Ey(:,iy,:)-(phi(:,iy+1,:)-phi(:,iy,:))/dy
+Ey(:,iy,:)=Ey(:,iy,:)-(phif(:,iy+1,:)-phif(:,iy,:))/dy
 ENDDO
 
 !***********************************************************************
@@ -2173,13 +2201,15 @@ ENDDO
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ey(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ey(1,:,:)=Ey0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ey(1,:,:)=Ey0(1,:,:)
+   Ey(1:NOZZLE_THICKNESS+1,:,:)=Ey0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
 
 END IF
@@ -2198,14 +2228,15 @@ END IF
 
 IF (yminp.EQ.ymin) THEN
 
-   IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ey(:,1,:)=0.0
-   END IF
+   ! IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ey(:,1,:)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ey(:,1,:)=Ey0(:,1,:)
+   ! ! Normal to nozzle surface
+   ! Ey(:,1,:)=Ey0(:,1,:)
+   Ey(:,1:NOZZLE_THICKNESS,:)=Ey0(:,1:NOZZLE_THICKNESS,:)
    END IF
 
 END IF
@@ -2221,7 +2252,7 @@ IF (ymaxp.EQ.ymax.AND.BOUND_FIELD_YMAX.NE."PERIODIC") THEN
 ELSE
    
 ! iy=NYP
-Ey(:,NYP,:)=Ey(:,NYP,:)-(bufRN1(:,:)-phi(:,NYP,:))/dy
+Ey(:,NYP,:)=Ey(:,NYP,:)-(bufRN1(:,:)-phif(:,NYP,:))/dy
 
 END IF
 
@@ -2231,13 +2262,15 @@ END IF
 IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ey(:,:,1)=0.0
    END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ey(:,:,1)=Ey0(:,:,1)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ey(:,:,1)=Ey0(:,:,1)
+   Ey(:,:,1:NOZZLE_THICKNESS+1)=Ey0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
 
 END IF
@@ -2255,7 +2288,7 @@ END IF
 ! Ez
 
 DO iz=1,NZP-1
-Ez(:,:,iz)=Ez(:,:,iz)-(phi(:,:,iz+1)-phi(:,:,iz))/dz
+Ez(:,:,iz)=Ez(:,:,iz)-(phif(:,:,iz+1)-phif(:,:,iz))/dz
 ENDDO
 
 !***********************************************************************
@@ -2263,13 +2296,15 @@ ENDDO
 IF (xminp.EQ.xmin) THEN
 
    IF (BOUND_FIELD_XMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ez(1,:,:)=0.0
    END IF
 
    IF (BOUND_FIELD_XMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ez(1,:,:)=Ez0(1,:,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ez(1,:,:)=Ez0(1,:,:)
+   Ez(1:NOZZLE_THICKNESS+1,:,:)=Ez0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
 
 END IF
@@ -2289,13 +2324,15 @@ END IF
 IF (yminp.EQ.ymin) THEN
 
    IF (BOUND_FIELD_YMIN.EQ."METAL") THEN
-   ! Parallel to, and inside of, conductor surface
+   ! ! Parallel to, and inside of, conductor surface
+   ! Tangent to conductor surface
    Ez(:,1,:)=0.0
    END IF
 
    IF (BOUND_FIELD_YMIN.EQ."NOZZLE") THEN
-   ! Parallel to, and inside of, nozzle surface
-   Ez(:,1,:)=Ez0(:,1,:)
+   ! ! Parallel to, and inside of, nozzle surface
+   ! Ez(:,1,:)=Ez0(:,1,:)
+   Ez(:,1:NOZZLE_THICKNESS+1,:)=Ez0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
 
 END IF
@@ -2314,14 +2351,15 @@ END IF
 
 IF (zminp.EQ.zmin) THEN
    
-   IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
-   ! Normal to conductor surface
-   Ez(:,:,1)=0.0
-   END IF
+   ! IF (BOUND_FIELD_ZMIN.EQ."METAL") THEN
+   ! ! Normal to conductor surface
+   ! Ez(:,:,1)=0.0
+   ! END IF
 
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
-   ! Normal to nozzle surface
-   Ez(:,:,1)=Ez0(:,:,1)
+   ! ! Normal to nozzle surface
+   ! Ez(:,:,1)=Ez0(:,:,1)
+   Ez(:,:,1:NOZZLE_THICKNESS)=Ez0(:,:,1:NOZZLE_THICKNESS)
    END IF
 
 END IF
@@ -2337,7 +2375,7 @@ IF (zmaxp.EQ.zmax.AND.BOUND_FIELD_ZMAX.NE."PERIODIC") THEN
 ELSE
 
 ! iz=NZP
-Ez(:,:,NZP)=Ez(:,:,NZP)-(bufRF1(:,:)-phi(:,:,NZP))/dz
+Ez(:,:,NZP)=Ez(:,:,NZP)-(bufRF1(:,:)-phif(:,:,NZP))/dz
 
 END IF
 

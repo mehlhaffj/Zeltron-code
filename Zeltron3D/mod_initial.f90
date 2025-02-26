@@ -315,7 +315,7 @@ delta=2.0*thde*me*c*c/(betad*gamd*e*B0)
 nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
 
 ! Magnetization parameter
-sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*density_ratio)
+sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*ratio_nb2nd)
 
 ! Electron skin depth.
 de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
@@ -402,25 +402,34 @@ ELSE IF (INIT.EQ."UNIFORM") THEN
 gamd=1.0/sqrt(1.0-betad*betad)
 
 ! Upstream initial reconnecting magnetic field
-B0=thde*me*c*c/(e*rhoc)
+B0=me*c*c/(e*rhoc)
 
 ! Initial layer thickness
+! Unused for INIT.NEQ."RECONN"
 delta=2.0*thde*me*c*c/(betad*gamd*e*B0)
 
 ! Electron density of the drifting (i.e., injected) particles.
-nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
+! nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
+nd0=B0*B0/(4.0*pi*me*c*c*2.0*sigma_inj)
 
 ! Magnetization parameter of initial (background) particles
-sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*density_ratio)
+sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*ratio_nb2nd)
 
 ! Electron skin depth.
-de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
+! Report the non-relativistic skin-depth for INIT.NEQ."RECONN"
+! de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
+de=sqrt(me*c*c/(4.0*pi*nd0*e*e))
 
 ! All currents are initially 0
 J0=0d0 
 
 ! Electron maximum radiation reaction limit energy
 grad=sqrt(3.0*e/(2.0*e**4.0/(me**2.0*c**4.0)*B0))
+
+! Put nd0 to zero in the end if we're doing a vacuum run
+IF (VACUUM_SIM) THEN
+    nd0=0d0
+END IF
 
 DO ix=1,NXP
 DO iy=1,NYP
@@ -434,21 +443,62 @@ Bx0(ix,iy,iz)=0.0
 By0(ix,iy,iz)=0.0
 Bz0(ix,iy,iz)=B0
 
-Bxg0(ix,iy,iz)=0.0
-Byg0(ix,iy,iz)=0.0
-Bzg0(ix,iy,iz)=B0
+! Set Ex
+bmag=B0
+bztemp=bmag
+Ex(ix,iy,iz)=-xyeep(ix)*bztemp/rlc
 
+rcyl=SQRT(xyeep(ix)*xyeep(ix) + ygp(iy)*ygp(iy))
+rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+Ex(ix,iy,iz)=Ex(ix,iy,iz)*rot_shutoff_factor
+
+! Set Ey
+bmag=B0
+bztemp=bmag
+Ey(ix,iy,iz)=-yyeep(iy)*bztemp/rlc
+
+rcyl=SQRT(xgp(ix)*xgp(ix) + yyeep(iy)*yyeep(iy))
+rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+Ey(ix,iy,iz)=Ey(ix,iy,iz)*rot_shutoff_factor
+
+! Set Ez
+bxtemp=0.0
+bytemp=0.0
+Ez(ix,iy,iz)=(xgp(ix)*bxtemp + ygp(iy)*bytemp)/rlc
+
+rcyl=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy))
+rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+Ez(ix,iy,iz)=Ez(ix,iy,iz)*rot_shutoff_factor
+
+Ex0(ix,iy,iz)=Ex(ix,iy,iz)
+Ey0(ix,iy,iz)=Ey(ix,iy,iz)
+Ez0(ix,iy,iz)=Ez(ix,iy,iz)
+
+! Zeroing out the initial field prevents a transient in the case that
+! BOUND_FIELD_ZMIN is not set equal to NOZZLE.
+! This is because the nontrivial, rotation-inducing E-field components
+! are contained in the Ei0, which are only injected on the boundary if
+! the NOZZLE BC is active.
+! Commented this to be able to plot the initial E-field, though!
 Ex(ix,iy,iz)=0.0
 Ey(ix,iy,iz)=0.0
 Ez(ix,iy,iz)=0.0
 
-Ex0(ix,iy,iz)=0.0
-Ey0(ix,iy,iz)=0.0
-Ez0(ix,iy,iz)=0.0
+! Same as above but now just on grid nodes
+bmag=B0
+Bxg0(ix,iy,iz)=0.0
+Byg0(ix,iy,iz)=0.0
+Bzg0(ix,iy,iz)=bmag
 
-Exg0(ix,iy,iz)=0.0
-Eyg0(ix,iy,iz)=0.0
-Ezg0(ix,iy,iz)=0.0
+Exg0(ix,iy,iz)=-xgp(ix)*Bzg0(ix,iy,iz)/rlc
+Eyg0(ix,iy,iz)=-ygp(iy)*Bzg0(ix,iy,iz)/rlc
+Ezg0(ix,iy,iz)=(xgp(ix)*Bxg0(ix,iy,iz) + ygp(iy)*Byg0(ix,iy,iz))/rlc
+
+rcyl=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy))
+rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+Exg0(ix,iy,iz)=Exg0(ix,iy,iz)*rot_shutoff_factor
+Eyg0(ix,iy,iz)=Eyg0(ix,iy,iz)*rot_shutoff_factor
+Ezg0(ix,iy,iz)=Ezg0(ix,iy,iz)*rot_shutoff_factor
 
 Jx(ix,iy,iz)=0.0
 Jy(ix,iy,iz)=0.0
@@ -469,19 +519,23 @@ ELSE IF (INIT.EQ."MONOPOLE") THEN
 gamd=1.0/sqrt(1.0-betad*betad)
 
 ! Upstream initial reconnecting magnetic field
-B0=thde*me*c*c/(e*rhoc)
+B0=me*c*c/(e*rhoc)
 
 ! Initial layer thickness
+! Unused for INIT.NEQ."RECONN"
 delta=2.0*thde*me*c*c/(betad*gamd*e*B0)
 
 ! Electron density of the drifting (i.e., injected) particles.
-nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
+! nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
+nd0=B0*B0/(4.0*pi*me*c*c*2.0*sigma_inj)
 
 ! Magnetization parameter of initial (background) particles
-sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*density_ratio)
+sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*ratio_nb2nd)
 
 ! Electron skin depth.
-de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
+! Report the non-relativistic skin-depth for INIT.NEQ."RECONN"
+! de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
+de=sqrt(me*c*c/(4.0*pi*nd0*e*e))
 
 ! All currents are initially 0
 J0=0d0 
@@ -489,8 +543,12 @@ J0=0d0
 ! Electron maximum radiation reaction limit energy
 grad=sqrt(3.0*e/(2.0*e**4.0/(me**2.0*c**4.0)*B0))
 
+! Put nd0 to zero in the end if we're doing a vacuum run
+IF (VACUUM_SIM) THEN
+    nd0=0d0
+END IF
+
 r0=(zmin-zmp)
-omega=c/rlc
 
 DO ix=1,NXP
 DO iy=1,NYP
