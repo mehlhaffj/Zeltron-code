@@ -1,0 +1,17 @@
+mkdir ./data
+mkdir ./data/orbits
+mkdir ./data/currents
+mkdir ./data/densities
+mkdir ./data/fields
+mkdir ./data/spectra
+mkdir ./data/plots
+# mkdir ./data/apertures
+mkdir ./data_restore
+mkdir ./data_restore/Er
+mkdir ./data_restore/Eth
+mkdir ./data_restore/Ez
+mkdir ./data_restore/Br
+mkdir ./data_restore/Bth
+mkdir ./data_restore/Bz
+mkdir ./data_restore/electrons
+mkdir ./data_restore/ions

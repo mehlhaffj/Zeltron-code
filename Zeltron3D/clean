@@ -1,0 +1,11 @@
+rm zeltron.exe
+
+# Remove all .mod and .o files
+rm *.mod *.o *~
+rm *.optrpt
+
+# Remove all data
+rm ./data/*.*
+rm ./data/**/*.*
+rm ./data_restore/*.*
+rm ./data_restore/**/*.*
