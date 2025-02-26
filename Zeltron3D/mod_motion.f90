@@ -715,10 +715,10 @@ SUBROUTINE BOUNDARIES_PARTICLES(pcl,pcl_data,tag,NPP)
 
 IMPLICIT NONE
 
-INTEGER*8 :: ip,is,NPP,NTEMP
-DOUBLE PRECISION, ALLOCATABLE :: pcl(:,:)
-DOUBLE PRECISION, ALLOCATABLE :: pcl_data(:,:)
-INTEGER*8, ALLOCATABLE        :: tag(:)
+INTEGER*8 :: ip,is,NPP,NTEMP,NINJ
+DOUBLE PRECISION, ALLOCATABLE :: pcl(:,:),pcl_inj(:,:)
+DOUBLE PRECISION, ALLOCATABLE :: pcl_data(:,:),pcl_data_inj(:,:)
+INTEGER*8, ALLOCATABLE        :: tag(:),tag_inj(:,:)
 DOUBLE PRECISION              :: x,y,z,ux,uy,uz,wt
 
 !***********************************************************************
@@ -768,6 +768,13 @@ IF (x.LT.xmin) THEN
    IF (BOUND_PART_XMIN.EQ."ABSORB") THEN
    wt=0d0
    END IF
+
+   ! The injection BC places particles in across a one-cell-thick layer
+   ! kicking them away from the boundary.
+   ! Those that nevertheless precipitate back to the boundary are removed.
+   IF (BOUND_PART_XMIN.EQ."INJECT") THEN
+   wt=0d0
+   END IF
    
 END IF
 
@@ -802,6 +809,10 @@ IF (y.LT.ymin) THEN
    
    ! Absorption
    IF (BOUND_PART_YMIN.EQ."ABSORB") THEN
+   wt=0d0
+   END IF
+
+   IF (BOUND_PART_YMIN.EQ."INJECT") THEN
    wt=0d0
    END IF
 
@@ -841,6 +852,10 @@ IF (z.LT.zmin) THEN
    wt=0d0
    END IF
 
+   IF (BOUND_PART_ZMIN.EQ."INJECT") THEN
+   wt=0d0
+   END IF
+
 END IF
 
 pcl(1,ip)=x
@@ -861,9 +876,31 @@ END IF
 ENDDO
 
 !***********************************************************************
+! Injecting new particles
+!***********************************************************************
 
-ALLOCATE(pcl_f(1:7,1:NTEMP),pcl_data_f(1:4,1:NTEMP))
-ALLOCATE(tagf(1:NTEMP))
+NINJ=0
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_PART_ZMIN.EQ."INJECT") THEN
+
+   CALL INJ_COLD_WIND(pcl_inj,speed,n0,xminp,yminp,zminp,NINJ)
+
+   ALLOCATE(pcl_data_inj(1:4,1:NINJ))
+   ALLOCATE(tag_inj(1:NINJ))
+   
+   pcl_data_inj=0.0
+   tag_inj=0
+
+   END IF
+
+END IF
+
+!***********************************************************************
+
+ALLOCATE(pcl_f(1:7,1:NTEMP+NINJ),pcl_data_f(1:4,1:NTEMP+NINJ))
+ALLOCATE(tagf(1:NTEMP+NINJ))
 
 !***********************************************************************
 ! Removing the leaking particles
@@ -899,13 +936,33 @@ DEALLOCATE(pcl,pcl_data)
 DEALLOCATE(tag)
 
 !***********************************************************************
+! Adding the injected particles
+!***********************************************************************
+
+IF (zminp.EQ.zmin) THEN
+
+   IF (BOUND_PART_ZMIN.EQ."INJECT") THEN
+   
+   DO ip=1,NINJ
+   
+      pcl_f(:,ip+NTEMP)=pcl_inj(:,ip)
+      pcl_data_f(:,ip+NTEMP)=pcl_data_inj(:,ip)
+      tagf(ip+NTEMP)=tag_inj(ip)
+   
+   ENDDO
+
+   END IF
+
+END IF
+
+!***********************************************************************
 ! Transfer of memory and content FROM pcl_f TO pcl
 
 CALL MOVE_ALLOC(pcl_f,pcl)
 CALL MOVE_ALLOC(pcl_data_f,pcl_data)
 CALL MOVE_ALLOC(tagf,tag)
 
-NPP=NTEMP
+NPP=NTEMP+NINJ
 
 !***********************************************************************
 
