@@ -69,15 +69,17 @@ DOUBLE PRECISION :: zminp,zmaxp
 DOUBLE PRECISION, DIMENSION(1:NX) :: xg
 DOUBLE PRECISION, DIMENSION(1:NY) :: yg
 DOUBLE PRECISION, DIMENSION(1:NZ) :: zg
-! Nodal grid in each domain
-DOUBLE PRECISION, DIMENSION(1:NXP) :: xgp
-DOUBLE PRECISION, DIMENSION(1:NYP) :: ygp
-DOUBLE PRECISION, DIMENSION(1:NZP) :: zgp
 
-! Yee grid in each domain
-DOUBLE PRECISION, DIMENSION(1:NXP) :: xyeep
-DOUBLE PRECISION, DIMENSION(1:NYP) :: yyeep
-DOUBLE PRECISION, DIMENSION(1:NZP) :: zyeep
+! JM: Moved these to mod_input
+! ! Nodal grid in each domain
+! DOUBLE PRECISION, DIMENSION(1:NXP) :: xgp
+! DOUBLE PRECISION, DIMENSION(1:NYP) :: ygp
+! DOUBLE PRECISION, DIMENSION(1:NZP) :: zgp
+! 
+! ! Yee grid in each domain
+! DOUBLE PRECISION, DIMENSION(1:NXP) :: xyeep
+! DOUBLE PRECISION, DIMENSION(1:NYP) :: yyeep
+! DOUBLE PRECISION, DIMENSION(1:NZP) :: zyeep
 
 ! Magnetic and Electric fields components Yee lattice
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx,By,Bz
@@ -1124,7 +1126,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_ed,NED)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_ed,pcl_data_ed,taged,NED)
+  CALL BOUNDARIES_PARTICLES(pcl_ed,pcl_data_ed,taged,NED,nd0,betad,thde,upe,gFpe,pse,gFse,ND)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_ed,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NED,NESC)
@@ -1156,7 +1158,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_pd,NPD)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_pd,pcl_data_pd,tagpd,NPD)
+  CALL BOUNDARIES_PARTICLES(pcl_pd,pcl_data_pd,tagpd,NPD,nd0,betad,thdi,upp,gFpp,psp,gFsp,ND)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_pd,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NPD,NESC)
@@ -1188,7 +1190,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_eb,NEB)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_eb,pcl_data_eb,tageb,NEB)
+  CALL BOUNDARIES_PARTICLES(pcl_eb,pcl_data_eb,tageb,NEB,0d0,0d0,0d0)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_eb,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NEB,NESC)
@@ -1220,7 +1222,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_pb,NPB)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_pb,pcl_data_pb,tagpb,NPB)
+  CALL BOUNDARIES_PARTICLES(pcl_pb,pcl_data_pb,tagpb,NPB,0d0,0d0,0d0)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_pb,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NPB,NESC)

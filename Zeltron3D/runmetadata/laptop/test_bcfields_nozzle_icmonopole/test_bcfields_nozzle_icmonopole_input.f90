@@ -94,7 +94,7 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_FIELD_ZMAX="METAL"
 ! 1. "PERIODIC": Periodic boundary conditions
 ! 2. "REFLECT": Particles are elastically reflected at the wall
 ! 3. "ABSORB": Particles are absorbed at the wall
-! 4. "NOZZLE": Inject particles across the NOZZLE where field-
+! 4. "INJECT": Inject particles across the NOZZLE where field-
 !     -line rotation is imposed
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_XMIN="PERIODIC"
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_XMAX="PERIODIC"
@@ -109,7 +109,7 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: BOUND_PART_ZMAX="PERIODIC"
 ! 1. "RECONN": Initial reconnection fields
 ! 2. "UNIFORM": Initial uniform \vec{B} = B_0 \hat{z}
 ! 3. "MONOPOLE": Place magnetic monopole on z-axis below zmin
-!     Strength of B-field at (xmin, ymin, zmin) is B_0
+!     Strength of B-field at (xmiddle, ymiddle, zmin) is B_0
 CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="MONOPOLE"
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -211,6 +211,16 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: dz=(zmax-zmin)/NCZ
 DOUBLE PRECISION, PARAMETER, PUBLIC :: dt=0.99*1d0/sqrt(1d0/dx**2d0+&
                                           1d0/dy**2d0+1d0/dz**2d0)/c
 
+! Nodal grid in each domain
+DOUBLE PRECISION, DIMENSION(1:NXP) :: xgp
+DOUBLE PRECISION, DIMENSION(1:NYP) :: ygp
+DOUBLE PRECISION, DIMENSION(1:NZP) :: zgp
+
+! Yee grid in each domain
+DOUBLE PRECISION, DIMENSION(1:NXP) :: xyeep
+DOUBLE PRECISION, DIMENSION(1:NYP) :: yyeep
+DOUBLE PRECISION, DIMENSION(1:NZP) :: zyeep
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Initial (tearing-mode) perturbation amplitude
@@ -281,6 +291,21 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: rnozzle=0.9*rlc
 ! Nozzle is shut off at rnozzle across half-thickness delta_nozzle
 ! Nozzle ang. freq. is omega = 0.5*c/rlc*(1.0-TANH((R-rnozzle)/delta_nozzle))
 DOUBLE PRECISION, PARAMETER, PUBLIC :: delta_nozzle=0.1*rnozzle
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Extra parameters for BOUND_PART_[X|Y|Z]MIN="INJECT"
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! Plasma injection rate
+! Changes the physical number of particles injected per unit time without
+! modifying the number of macroparticles injected.
+! Hence, this changes physics but not simulation speed, memory cost, or
+! particle statistics.
+DOUBLE PRECISION, PARAMETER, PUBLIC :: rate=1.0
+! A factor by which to amplify injection of macroparticles without changing
+! the physical particle density.
+! Hence, this does NOT change physics, but may change simulation speed, memory
+! cost, and particle statistics.
+DOUBLE PRECISION, PARAMETER, PUBLIC :: over_inject=1.0
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! Extra parameters for INIT="MONOPOLE"

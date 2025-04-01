@@ -211,6 +211,16 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: dz=(zmax-zmin)/NCZ
 DOUBLE PRECISION, PARAMETER, PUBLIC :: dt=0.99*1d0/sqrt(1d0/dx**2d0+&
                                           1d0/dy**2d0+1d0/dz**2d0)/c
 
+! Nodal grid in each domain
+DOUBLE PRECISION, DIMENSION(1:NXP) :: xgp
+DOUBLE PRECISION, DIMENSION(1:NYP) :: ygp
+DOUBLE PRECISION, DIMENSION(1:NZP) :: zgp
+
+! Yee grid in each domain
+DOUBLE PRECISION, DIMENSION(1:NXP) :: xyeep
+DOUBLE PRECISION, DIMENSION(1:NYP) :: yyeep
+DOUBLE PRECISION, DIMENSION(1:NZP) :: zyeep
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Initial (tearing-mode) perturbation amplitude

@@ -37,6 +37,7 @@ PUBLIC :: INIT_DRIFT_MAXWELLIAN ! Computes the cumulative distribution functions
 PUBLIC :: GEN_UP ! Generates particle parallel momentum
 PUBLIC :: GEN_PS ! Generates particle perpendicular momentum
 PUBLIC :: INIT_RANDOM_SEED ! Avoid repeating series of random numbers
+PUBLIC :: INJ_DRIFT_MAXWELLIAN ! Inject drifting Maxwellian from simulation boundary
 
  CONTAINS
 
@@ -391,7 +392,8 @@ ENDDO
 ENDDO
 ENDDO
 
-ELSE IF (INIT.EQ."UNIFORM") THEN
+ELSE IF (.FALSE.) THEN
+! ELSE IF (INIT.EQ."UNIFORM") THEN
 !***********************************************************************
 ! Initial plasma parameters according to a uniform field 
 ! The initial plasma particles are uniformly distributed and do not drift
@@ -479,7 +481,7 @@ Ez0(ix,iy,iz)=Ez(ix,iy,iz)
 ! This is because the nontrivial, rotation-inducing E-field components
 ! are contained in the Ei0, which are only injected on the boundary if
 ! the NOZZLE BC is active.
-! Commented this to be able to plot the initial E-field, though!
+! Comment this to be able to plot the initial E-field, though!
 Ex(ix,iy,iz)=0.0
 Ey(ix,iy,iz)=0.0
 Ez(ix,iy,iz)=0.0
@@ -508,7 +510,8 @@ ENDDO
 ENDDO
 ENDDO
 
-ELSE IF (INIT.EQ."MONOPOLE") THEN
+ELSE IF (.FALSE.) THEN
+!ELSE IF (INIT.EQ."MONOPOLE") THEN
 !***********************************************************************
 ! Initial plasma parameters according to a monopolar field 
 ! The initial plasma particles are uniformly distributed and do not drift
@@ -638,6 +641,152 @@ Jx(ix,iy,iz)=0.0
 Jy(ix,iy,iz)=0.0
 Jz(ix,iy,iz)=0.0
 
+ELSE IF ((INIT.EQ."UNIFORM").OR.(INIT.EQ."MONOPOLE")) THEN
+!***********************************************************************
+! Initial plasma parameters according to a monopolar or uniform initial field 
+! The initial plasma particles are uniformly distributed and do not drift
+! Optionally, drifting particles can be injected through a NOZZLE at velocity
+! betad.
+
+! Bulk Lorentz factor drifting particles
+gamd=1.0/sqrt(1.0-betad*betad)
+
+! Upstream initial reconnecting magnetic field
+B0=me*c*c/(e*rhoc)
+
+! Initial layer thickness
+! Unused for INIT.NEQ."RECONN"
+delta=2.0*thde*me*c*c/(betad*gamd*e*B0)
+
+! Electron density of the drifting (i.e., injected) particles.
+! nd0=(thde*me*c*c)/(4.0*pi*e*e*betad*betad*gamd*delta*delta)
+nd0=B0*B0/(4.0*pi*me*c*c*2.0*sigma_inj)
+
+! Magnetization parameter of initial (background) particles
+sigma=B0*B0/(4.0*pi*me*c*c*2.0*nd0*ratio_nb2nd)
+
+! Electron skin depth.
+! Report the non-relativistic skin-depth for INIT.NEQ."RECONN"
+! de=sqrt(thde*me*c*c/(4.0*pi*nd0*e*e))
+de=sqrt(me*c*c/(4.0*pi*nd0*e*e))
+
+! All currents are initially 0
+J0=0d0 
+
+! Electron maximum radiation reaction limit energy
+grad=sqrt(3.0*e/(2.0*e**4.0/(me**2.0*c**4.0)*B0))
+
+! Put nd0 to zero in the end if we're doing a vacuum run
+IF (VACUUM_SIM) THEN
+    nd0=0d0
+END IF
+
+DO ix=1,NXP
+DO iy=1,NYP
+DO iz=1,NZP
+
+! Set Bx
+CALL INITIAL_BCOMPONENTS(xgp(ix),yyeep(iy),zyeep(iz),bxtemp,bytemp,bztemp)
+Bx(ix,iy,iz) = bxtemp
+! rmp=SQRT(xgp(ix)*xgp(ix) + yyeep(iy)*yyeep(iy) + (zyeep(iz)-zmp)*(zyeep(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! Bx(ix,iy,iz)=bmag*(xgp(ix) - 0.0)/rmp
+
+! Set By
+CALL INITIAL_BCOMPONENTS(xyeep(ix),ygp(iy),zyeep(iz),bxtemp,bytemp,bztemp)
+By(ix,iy,iz) = bytemp
+! rmp=SQRT(xyeep(ix)*xyeep(ix) + ygp(iy)*ygp(iy) + (zyeep(iz)-zmp)*(zyeep(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! By(ix,iy,iz)=bmag*(ygp(iy) - 0.0)/rmp
+
+! Set Bz
+CALL INITIAL_BCOMPONENTS(xyeep(ix),yyeep(iy),zgp(iz),bxtemp,bytemp,bztemp)
+Bz(ix,iy,iz) = bztemp
+! rmp=SQRT(xyeep(ix)*xyeep(ix) + yyeep(iy)*yyeep(iy) + (zgp(iz)-zmp)*(zgp(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! Bz(ix,iy,iz)=bmag*(zgp(iz) - zmp)/rmp
+
+Bx0(ix,iy,iz) = Bx(ix,iy,iz)
+By0(ix,iy,iz) = By(ix,iy,iz)
+Bz0(ix,iy,iz) = Bz(ix,iy,iz)
+
+! Set Ex
+CALL INITIAL_BCOMPONENTS(xyeep(ix),ygp(iy),zgp(iz),bxtemp,bytemp,bztemp)
+! rmp=SQRT(xyeep(ix)*xyeep(ix) + ygp(iy)*ygp(iy) + (zgp(iz)-zmp)*(zgp(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! bztemp=bmag*(zgp(iz) - zmp)/rmp
+Ex(ix,iy,iz) = -xyeep(ix)*bztemp/rlc
+
+! rcyl=SQRT(xyeep(ix)*xyeep(ix) + ygp(iy)*ygp(iy))
+! rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+rot_shutoff_factor = ROTATION_PROFILE(xyeep(ix),ygp(iy))
+Ex(ix,iy,iz) = Ex(ix,iy,iz)*rot_shutoff_factor
+
+! Set Ey
+CALL INITIAL_BCOMPONENTS(xgp(ix),yyeep(iy),zgp(iz),bxtemp,bytemp,bztemp)
+! rmp=SQRT(xgp(ix)*xgp(ix) + yyeep(iy)*yyeep(iy) + (zgp(iz)-zmp)*(zgp(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! bztemp=bmag*(zgp(iz) - zmp)/rmp
+Ey(ix,iy,iz) = -yyeep(iy)*bztemp/rlc
+
+! rcyl=SQRT(xgp(ix)*xgp(ix) + yyeep(iy)*yyeep(iy))
+! rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+rot_shutoff_factor = ROTATION_PROFILE(xgp(ix),yyeep(iy))
+Ey(ix,iy,iz) = Ey(ix,iy,iz)*rot_shutoff_factor
+
+! Set Ez
+CALL INITIAL_BCOMPONENTS(xgp(ix),ygp(iy),zyeep(iz),bxtemp,bytemp,bztemp)
+! rmp=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy) + (zyeep(iz)-zmp)*(zyeep(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! bxtemp=bmag*(xgp(ix) - 0.0)/rmp
+! bytemp=bmag*(ygp(iy) - 0.0)/rmp
+Ez(ix,iy,iz) = (xgp(ix)*bxtemp + ygp(iy)*bytemp)/rlc
+
+! rcyl=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy))
+! rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+rot_shutoff_factor = ROTATION_PROFILE(xgp(ix),ygp(iy))
+Ez(ix,iy,iz) = Ez(ix,iy,iz)*rot_shutoff_factor
+
+Ex0(ix,iy,iz) = Ex(ix,iy,iz)
+Ey0(ix,iy,iz) = Ey(ix,iy,iz)
+Ez0(ix,iy,iz) = Ez(ix,iy,iz)
+
+! Zeroing out the initial field prevents a transient in the case that
+! BOUND_FIELD_ZMIN is not set equal to NOZZLE.
+! This is because the nontrivial, rotation-inducing E-field components
+! are contained in the Ei0, which are only injected on the boundary if
+! the NOZZLE BC is active.
+Ex(ix,iy,iz)=0.0
+Ey(ix,iy,iz)=0.0
+Ez(ix,iy,iz)=0.0
+
+! Same as above but now just on grid nodes
+CALL INITIAL_BCOMPONENTS(xgp(ix),ygp(iy),zgp(iz),bxtemp,bytemp,bztemp)
+! rmp=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy) + (zgp(iz)-zmp)*(zgp(iz)-zmp))
+! bmag=B0*r0*r0/(rmp*rmp)
+! Bxg0(ix,iy,iz)=bmag*(xgp(ix) - 0.0)/rmp
+! Byg0(ix,iy,iz)=bmag*(ygp(iy) - 0.0)/rmp
+! Bzg0(ix,iy,iz)=bmag*(zgp(iz) - zmp)/rmp
+Bxg0(ix,iy,iz) = bxtemp
+Byg0(ix,iy,iz) = bytemp
+Bzg0(ix,iy,iz) = bztemp
+
+Exg0(ix,iy,iz) = -xgp(ix)*Bzg0(ix,iy,iz)/rlc
+Eyg0(ix,iy,iz) = -ygp(iy)*Bzg0(ix,iy,iz)/rlc
+Ezg0(ix,iy,iz) = (xgp(ix)*Bxg0(ix,iy,iz) + ygp(iy)*Byg0(ix,iy,iz))/rlc
+
+! rcyl=SQRT(xgp(ix)*xgp(ix) + ygp(iy)*ygp(iy))
+! rot_shutoff_factor=0.5*(1.0-TANH((rcyl-rnozzle)/delta_nozzle))
+rot_shutoff_factor = ROTATION_PROFILE(xgp(ix),ygp(iy))
+Exg0(ix,iy,iz) = Exg0(ix,iy,iz)*rot_shutoff_factor
+Eyg0(ix,iy,iz) = Eyg0(ix,iy,iz)*rot_shutoff_factor
+Ezg0(ix,iy,iz) = Ezg0(ix,iy,iz)*rot_shutoff_factor
+
+Jx(ix,iy,iz) = 0.0
+Jy(ix,iy,iz) = 0.0
+Jz(ix,iy,iz) = 0.0
+
+
 ENDDO
 ENDDO
 ENDDO
@@ -649,6 +798,99 @@ PRINT *, "Unrecognized initial condition: ", INIT
 END IF
 
 END SUBROUTINE SET_FIELDS
+
+!***********************************************************************
+! Subroutine INITIAL_BCOMPONENTS
+! Note that the output of this function depends on whether the LAST ARGUMENT
+! is supplied! Read carefully.
+!  
+! INPUT:
+! - x,y,z: spatial position
+! 
+! OUTPUT:
+! - bhatx,bhaty,bhatz,bmag: components of the magnetic field initial condition
+!     at position (x,y,z)
+!     The magnetic field vector is (bhatx,bhaty,bhatz)*bmag
+!     The magnetic field magnitude is bmag
+!     The magnetic field unit vector is (bhatx,bhaty,bhatz)
+! 
+!   OR, if bmag IS NOT SUPPLIED,
+!
+! - bx,by,bz: components of the magnetic field initial condition at (x,y,z)
+!     The magnetic field vector is (bhatx,bhaty,bhatz)
+!***********************************************************************
+SUBROUTINE INITIAL_BCOMPONENTS(x,y,z,bhatx,bhaty,bhatz,bmag)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION, INTENT(IN)            :: x,y,z
+DOUBLE PRECISION, INTENT(OUT)           :: bhatx,bhaty,bhatz
+DOUBLE PRECISION, INTENT(OUT), OPTIONAL :: bmag
+
+DOUBLE PRECISION :: r0,rmp,bmagtemp
+
+IF (INIT.EQ."UNIFORM") THEN
+
+bmagtemp = B0
+bhatx    = 0d0
+bhaty    = 0d0
+bhatz    = 1d0
+
+ELSE IF (INIT.EQ."MONOPOLE") THEN
+
+! Distance to the monopole at (x=0,y=0,zmin)
+r0 = (zmin-zmp)
+! Distance to the monopole at (x,y,z)
+rmp = SQRT((x - 0d0)*(x - 0d0) + (y - 0d0)*(y - 0d0) + (z - zmp)*(z - zmp))
+
+bmagtemp = B0*r0*r0/(rmp*rmp)
+bhatx    = (x - 0d0)/rmp
+bhaty    = (y - 0d0)/rmp
+bhatz    = (z - zmp)/rmp
+
+ELSE
+
+PRINT *, "Unrecognized initial condition: ", INIT
+
+ENDIF
+
+IF (PRESENT(bmag)) THEN
+    bmag = bmagtemp
+ELSE
+    bhatx = bhatx*bmagtemp
+    bhaty = bhaty*bmagtemp
+    bhatz = bhatz*bmagtemp
+END IF
+
+END SUBROUTINE INITIAL_BCOMPONENTS
+
+!***********************************************************************
+! Subroutine ROTATION_PROFILE
+! For the NOZZLE boundary condition applied at z=zmin, the rotation cuts
+! off smoothly, such that the angular frequency is just
+! 
+!     (c/rcyl) * ROTATION_PROFILE(x,y,z=zmin)
+!  
+! INPUT:
+! - x,y: spatial position
+! 
+! OUTPUT:
+! - nozzle rotation profile applied at (x,y,z=zmin)
+!***********************************************************************
+FUNCTION ROTATION_PROFILE(x,y)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION, INTENT(IN)  :: x,y
+DOUBLE PRECISION, INTENT(OUT) :: ROTATION_PROFILE
+
+DOUBLE PRECISION :: rcyl
+
+rcyl = SQRT( (x - 0d0)*(x - 0d0) + (y - 0d0)*(y - 0d0) )
+ROTATION_PROFILE=0.5*(1d0 - TANH( (rcyl - rnozzle)/delta_nozzle ))
+
+END FUNCTION ROTATION_PROFILE
+
 
 !***********************************************************************
 ! Subroutine WEIGHT
@@ -1396,6 +1638,295 @@ ps0(ic)=fp*(ps(i2+1)-ps(i2))+ps(i2)
 ENDDO
 
 END SUBROUTINE GEN_PS
+
+!***********************************************************************
+! Subroutine INJ_DRIFT_MAXWELLIAN
+! This subroutine injects a wind of particles along field lines where the
+! NOZZLE field boundary condition is specified.
+!
+! INPUT: 
+! - speed: Field-parallel bulk drift velocity of the wind in units of c 
+! - theta: Temperature of plasma, in units of mc^2/k, in wind rest frame.
+!     theta can be equal to 0, but numbers bigger than 0 and smaller than
+!     something like 0.01 may cause strange behavior
+! - n0: Target number density of the wind
+!     The actual density will be close to, but possibly not exactly equal to,
+!     this value
+!     Specifying n0 <= 0 means no injection
+! - [x|y|z]minp: Lower spatial boundary for each domain
+! - up,gFp,ps,gFs,ND: Particle distribution generator quantities
+!
+! OUTPUT: Particle distribution function (weights set, too)
+! - NINJ: The number of injected particles
+! - pcl_inj: Injected distribution function of the particles
+!   pcl_inj is never deallocated, but will be resized as necessary to
+!   contain all of the injected particles.
+!***********************************************************************
+SUBROUTINE INJ_DRIFT_MAXWELLIAN(pcl_inj,NINJ,speed,theta,n0,xminp,yminp,zminp,up,gFp,ps,gFs,ND)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION, INTENT(IN) :: speed,theta,n0
+DOUBLE PRECISION, INTENT(IN) :: xminp,yminp,zminp
+
+INTEGER*8, INTENT(OUT) :: NINJ
+
+DOUBLE PRECISION, DIMENSION(:,:), ALLOCATABLE, INTENT(INOUT) :: pcl_inj
+
+! Pre-calculated CDF arrays
+DOUBLE PRECISION, DIMENSION(:),   INTENT(IN) :: up,gFp,ps
+DOUBLE PRECISION, DIMENSION(:,:), INTENT(IN) :: gFs
+! Number of elements in the pre-calculated cumulative distribution functions
+INTEGER,                          INTENT(IN) :: ND
+
+!******************************
+! Variables local to subroutine
+!******************************
+
+! Unit vectors defined by local field direction
+DOUBLE PRECISION :: bhatx,bhaty,bhatz,bmag
+DOUBLE PRECISION :: e1hatx,e1haty,e1hatz
+DOUBLE PRECISION :: e2hatx,e2haty,e2hatz
+
+DOUBLE PRECISION, DIMENSION(1:NCXP,1:NCYP)  :: ninj_per_cell_dbl
+DOUBLE PRECISION, DIMENSION(1:NCXP,1:NCYP)  :: rand_draws, fractional_ptcls
+INTEGER,          DIMENSION(1:NCXP,1:NCYP)  :: ninj_per_cell
+
+DOUBLE PRECISION :: shutoff_factor, targ_dens
+
+DOUBLE PRECISION, ALLOCATABLE, DIMENSION(:) :: up0,ps0,uperp0,phi0
+
+DOUBLE PRECISION :: x0c,y0c,z0c
+
+! Loop indices
+INTEGER   :: ic,ix,iy,iz
+INTEGER*8 :: ip
+
+!******************************
+! Begin code
+!******************************
+
+CALL INIT_RANDOM_SEED()
+
+iz = 1
+
+NINJ = 0
+IF (ALLOCATED(pcl_inj)) THEN
+    pcl_inj = 0.0
+END IF
+
+! Don't inject new particles if n0 <= 0d0
+IF (n0 > 0d0) THEN
+
+!*****************************************************
+! Figure out how many particles to inject in each cell
+!*****************************************************
+DO iy=1,NCYP
+DO ix=1,NCXP
+
+    CALL INITIAL_BCOMPONENTS(xyeep(ix),yyeep(iy),zyeep(iz),bhatx,bhaty,bhatz,bmag)
+    ninj_per_cell_dbl(ix,iy) = over_inject*PPC*(speed*c*dt/dz)*ABS(bhatz)
+
+ENDDO
+ENDDO
+
+! The number of injected macro-particles per cell calculated above is not
+! necessarily an integer. Here, we convert it into an integer by flipping
+! a coin to see if the non-integer part of the number also becomes injected
+! as a macroparticle. In this way, the number of particles injected per
+! timestep in cell ir will be equal, on average, to ninj_per_cell_dbl(ir).
+fractional_ptcls=ninj_per_cell_dbl-FLOOR(ninj_per_cell_dbl)
+CALL RANDOM_NUMBER(rand_draws)
+
+! The 0.0*x+1.0 is a hack to get an array of ones of the same dimensions as x.
+ninj_per_cell=FLOOR(ninj_per_cell_dbl)+&
+    0.5*(1.0+SIGN(0.0*fractional_ptcls+1.0,fractional_ptcls-rand_draws))
+
+! Total number of injected particles
+NINJ=SUM(ninj_per_cell)
+
+!***********************************************************************
+! Populate pcl_inj
+!***********************************************************************
+IF (ALLOCATED(pcl_inj)) THEN
+    IF (SIZE(pcl_inj,DIM=2) < NINJ) THEN
+        DEALLOCATE(pcl_inj)
+        ALLOCATE(pcl_inj(1:7,1:NINJ))
+    ENDIF
+ELSE
+    ALLOCATE(pcl_inj(1:7,1:NINJ))
+ENDIF
+
+pcl_inj=0.0
+
+!***********************************************************************
+! Sample particle velocities
+!***********************************************************************
+ALLOCATE(up0(NINJ))
+ALLOCATE(ps0(NINJ))
+ALLOCATE(uperp0(NINJ))
+ALLOCATE(phi0(NINJ))
+
+IF (theta.GT.0) THEN
+
+    up0=0.0
+
+    CALL GEN_UP(up0,up,gFp,ND,NINJ)
+
+    ! Definition of the initial perpendicular momentum
+    ps0=0.0
+
+    CALL GEN_PS(ps0,ps,up0,up,gFs,ND,NINJ)
+
+    uperp0=ps0*sqrt(1.0+up0*up0)
+
+    ! Definition of the initial perpendicular momentum azimuthal angle phi0 as a
+    ! uniform random value
+    phi0=0.0
+
+    CALL RANDOM_NUMBER(phi0)
+    phi0=phi0*2.0*pi
+
+ELSE
+    ! Do theta.EQ.0 separately
+    ! This avoids bogus from the routines used to sample the drifting particle
+    ! distribution at low temperatures
+    up0=speed
+    uperp0=0.0
+    phi0=0.0
+    CALL RANDOM_NUMBER(phi0)
+    phi0=phi0*2.0*pi
+
+ENDIF
+
+ip = 1
+DO iy=1,NCYP
+DO ix=1,NCXP
+DO ic=1,ninj_per_cell(ix,iy)
+
+!***********************************************************************
+! Sample particle positions
+!***********************************************************************
+! Definition of the positions as uniform random values
+x0c = 0.0
+CALL RANDOM_NUMBER(x0c)
+x0c = xgp(ix) + x0c*dx
+
+y0c = 0.0
+CALL RANDOM_NUMBER(y0c)
+y0c = ygp(iy) + y0c*dy
+
+z0c = 0.0
+CALL RANDOM_NUMBER(z0c)
+z0c = zgp(iz) + z0c*dz
+
+pcl_inj(1,ip)=x0c
+pcl_inj(2,ip)=y0c
+pcl_inj(3,ip)=z0c
+
+!***********************************************************************
+! Rotate particle velocities along local magnetic field
+!***********************************************************************
+IF (ISNAN(uperp0(ip))) THEN
+    PRINT *, "Found uperp0 NaN in injector"
+ENDIF
+IF (ISNAN(up0(ip))) THEN
+    PRINT *, "Found up0 NaN in injector"
+ENDIF
+
+! Retrieve a unit vector, bhat = (bhatx,bhaty,bhatz), along the local magnetic field
+CALL INITIAL_BCOMPONENTS(x0c,y0c,z0c,bhatx,bhaty,bhatz,bmag)
+! Construct an orthonormal basis using bhat. Calculate two unit vectors e1 and
+! e2 such that e1 \times e2 = bhat. Then interpret phi0(ip) as the angle of the
+! perpendicular velocity in the e1-e2 plane from the e1 axis.
+CALL ORTHONORMAL_TRIAD(bhatx,bhaty,bhatz,e1hatx,e1haty,e1hatz,e2hatx,e2haty,e2hatz)
+
+pcl_inj(4,ip) = uperp0(ip)*( COS(phi0(ip))*e1hatx + SIN(phi0(ip))*e2hatx ) + up0(ip)*bhatx
+pcl_inj(5,ip) = uperp0(ip)*( COS(phi0(ip))*e1haty + SIN(phi0(ip))*e2haty ) + up0(ip)*bhaty
+pcl_inj(6,ip) = uperp0(ip)*( COS(phi0(ip))*e1hatz + SIN(phi0(ip))*e2hatz ) + up0(ip)*bhatz
+
+! Ensure that particles are injected into the simulation
+IF (pcl_inj(6,ip)<0d0) THEN
+    pcl_inj(4,ip) = -pcl_inj(4,ip)
+    pcl_inj(5,ip) = -pcl_inj(5,ip)
+    pcl_inj(6,ip) = -pcl_inj(6,ip)
+ENDIF
+
+shutoff_factor = ROTATION_PROFILE(x0c,y0c)
+! Assign weights so that, downstream of the injection region where the average
+! number of macro-particles per cell is (over_inject*PPC), the equivalent physical
+! number density is (shutoff_factor*rate*)n0.
+pcl_inj(7,ip) = shutoff_factor*rate*n0*dx*dy*dz/(over_inject*PPC)
+
+ip = ip + 1
+
+ENDDO
+ENDDO
+ENDDO
+
+DEALLOCATE(up0)
+DEALLOCATE(ps0)
+DEALLOCATE(uperp0)
+DEALLOCATE(phi0)
+
+END IF  ! n0 > 0d0
+
+END SUBROUTINE INJ_DRIFT_MAXWELLIAN
+
+!***********************************************************************
+! Subroutine ORTHONORMAL_TRIAD
+! Given one (unit) vector, construct two transverse unit vectors to complete
+! an orthonormal triad.
+!
+! INPUT:
+! - nx, ny, nz: Components of a vector defining one axis of the triad.
+!     Requirement: nx^2 + ny^2 + nz^2 > 0.0,
+!     But can have nx^2 + ny^2 + nz^2 /= 1.0
+!
+! OUTPUT:
+! - b1x, b1y, b1z, b2x, b2y, b2z: Components of the other two transverse
+!     unit vectors in the triad. Properties:
+!     norm(b1) == norm(b2) == norm(n / norm(n)) == 1
+!     cross(b1, b2) == n / norm(n)
+!***********************************************************************
+SUBROUTINE ORTHONORMAL_TRIAD(nx, ny, nz, b1x, b1y, b1z, b2x, b2y, b2z)
+
+  IMPLICIT NONE
+
+  DOUBLE PRECISION, INTENT(IN)  :: nx, ny, nz
+  DOUBLE PRECISION, INTENT(OUT) :: b1x, b1y, b1z, b2x, b2y, b2z
+
+  DOUBLE PRECISION :: singularity_cutoff = -0.999999
+  DOUBLE PRECISION :: denom_fac, nhatx, nhaty, nhatz, nmag, nmaginv
+
+  ! Begin code
+  nmag = SQRT(nx*nx + ny*ny + nz*nz)
+  IF (nmag == 0.0) THEN
+     PRINT *, "ORTHONORMAL_TRIAD received zero-magnitude vector."
+     PRINT *, "You're in trouble..."
+  ENDIF
+  nmaginv = 1.0 / nmag
+  nhatx = nx * nmaginv
+  nhaty = ny * nmaginv
+  nhatz = nz * nmaginv
+  IF (nhatz < singularity_cutoff) THEN
+     b1x = 0.0
+     b1y = -1.0
+     b1z = 0.0
+     b2x = -1.0
+     b2y = 0.0
+     b2z = 0.0
+  ELSE
+     denom_fac = 1.0 / (1.0 + nhatz)
+     b1x = 1.0 - nhatx * nhatx * denom_fac
+     b1y = -nhatx * nhaty * denom_fac
+     b1z = -nhatx
+     b2x = -nhatx * nhaty * denom_fac
+     b2y = 1.0 - nhaty * nhaty * denom_fac
+     b2z = -nhaty
+  ENDIF
+  
+END SUBROUTINE ORTHONORMAL_TRIAD
 
 !***********************************************************************
 ! init_random_seed() subroutine enables to avoid the repeating series of

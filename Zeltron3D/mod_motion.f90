@@ -20,6 +20,7 @@
 MODULE MOD_MOTION
 
 USE MOD_INPUT
+USE MOD_INITIAL
 USE MOD_INTERP
 
 IMPLICIT NONE
@@ -707,11 +708,21 @@ END SUBROUTINE COUNT_ESCAPE
 ! INPUT: 
 ! - pcl: particle distribution function
 ! - NPP: Number of particle per domain
+! - n0: Injected plasma target density for particle boundary condition INJECT
+!     n0 <= 0 means no injection, even if BOUND_PART_[X|Y|Z]MIN.EQ."INJECT"
+! - speed: Injected plasma bulk speed in units of c for particle boundary
+!     condition INJECT
+! - theta: Injected plasma comoving temperature in units of mc^2/k for particle
+!     boundary condition INJECT
+!     theta can be equal to 0, but numbers bigger than 0 and smaller than
+!     something like 0.01 may cause strange behavior
+! - up,gFp,ps,gFs,ND: Particle distribution generator quantities; only
+!     required if theta > 0
 !
 ! OUTPUT: Updated particle distribution function at time t+dt
 !***********************************************************************
 
-SUBROUTINE BOUNDARIES_PARTICLES(pcl,pcl_data,tag,NPP)
+SUBROUTINE BOUNDARIES_PARTICLES(pcl,pcl_data,tag,NPP,n0,speed,theta,up,gFp,ps,gFs,ND)
 
 IMPLICIT NONE
 
@@ -721,7 +732,17 @@ DOUBLE PRECISION, ALLOCATABLE :: pcl_data(:,:),pcl_data_inj(:,:)
 INTEGER*8, ALLOCATABLE        :: tag(:),tag_inj(:,:)
 DOUBLE PRECISION              :: x,y,z,ux,uy,uz,wt
 
+DOUBLE PRECISION, DIMENSION(:),   INTENT(IN), OPTIONAL :: up,gFp,ps
+DOUBLE PRECISION, DIMENSION(:,:), INTENT(IN), OPTIONAL :: gFs
+INTEGER,                          INTENT(IN), OPTIONAL :: ND
+
 !***********************************************************************
+
+IF ((theta > 0.0) .AND. (.NOT.PRESENT(up))) THEN
+    PRINT *, "Detected finite injection temperature but particle distribution"
+    PRINT *, "generator quantities not passed to BOUNDARIES_PARTICLES..."
+    PRINT *, "Prepare for trouble..."
+ENDIF
 
 NTEMP=0
 
@@ -885,7 +906,8 @@ IF (zminp.EQ.zmin) THEN
 
    IF (BOUND_PART_ZMIN.EQ."INJECT") THEN
 
-   CALL INJ_COLD_WIND(pcl_inj,speed,n0,xminp,yminp,zminp,NINJ)
+   ! CALL INJ_COLD_WIND(pcl_inj,speed,n0,xminp,yminp,zminp,NINJ)
+   CALL INJ_DRIFT_MAXWELLIAN(pcl_inj,NINJ,n0,speed,theta,xminp,yminp,zminp,up,gFp,ps,gFs,ND)
 
    ALLOCATE(pcl_data_inj(1:4,1:NINJ))
    ALLOCATE(tag_inj(1:NINJ))
