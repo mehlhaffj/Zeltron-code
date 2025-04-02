@@ -2623,22 +2623,26 @@ CALL WRITE_DATASET_1DINT(fileId, "domainDecomp", 0, &
   INT8( (/ NDIM /) ), domainDecomp, COMM)
 
 ! Get domain indices
-IF (rank == 0) THEN
-  ALLOCATE(domainIndices(NDIM, numRanks))
-ENDIF
+! IF (rank == 0) THEN
+!   ALLOCATE(domainIndices(NDIM, numRanks))
+! ENDIF
+ALLOCATE(domainIndices(NDIM, numRanks))
 CALL MPI_GATHER(domainIndex, NDIM, MPI_INTEGER, domainIndices, NDIM, &
   MPI_INTEGER, 0, COMM, mpiErr)
 CALL WRITE_DATASET_2DINT(fileId, "domainCoords", 0, &
   INT8( (/ NDIM, numRanks /) ), domainIndices, COMM)
-IF (rank == 0) THEN
-  DEALLOCATE(domainIndices)
-ENDIF
+! IF (rank == 0) THEN
+!   DEALLOCATE(domainIndices)
+! ENDIF
+DEALLOCATE(domainIndices)
 
 ! Get domain bounds
-IF (rank == 0) THEN
-  ALLOCATE(domainLowerBounds(NDIM, numRanks))
-  ALLOCATE(domainUpperBounds(NDIM, numRanks))
-ENDIF
+! IF (rank == 0) THEN
+!   ALLOCATE(domainLowerBounds(NDIM, numRanks))
+!   ALLOCATE(domainUpperBounds(NDIM, numRanks))
+! ENDIF
+ALLOCATE(domainLowerBounds(NDIM, numRanks))
+ALLOCATE(domainUpperBounds(NDIM, numRanks))
 CALL MPI_GATHER(domainLbs, NDIM, MPI_DOUBLE_PRECISION, domainLowerBounds, &
   NDIM, MPI_DOUBLE_PRECISION, 0, COMM, mpiErr)
 CALL MPI_GATHER(domainUbs, NDIM, MPI_DOUBLE_PRECISION, domainUpperBounds, &
@@ -2649,16 +2653,18 @@ CALL WRITE_DATASET_2DDBL(fileId, "domainLowerBounds", 0, &
 CALL WRITE_DATASET_2DDBL(fileId, "domainUpperBounds", 0, &
   INT8( (/ NDIM, numRanks /) ), domainUpperBounds, COMM, &
   "xmaxp, ymaxp, zmaxp for each rank")
-IF (rank == 0) THEN
-  DEALLOCATE(domainLowerBounds, domainUpperBounds)
-ENDIF
+! IF (rank == 0) THEN
+!   DEALLOCATE(domainLowerBounds, domainUpperBounds)
+! ENDIF
+DEALLOCATE(domainLowerBounds, domainUpperBounds)
 
 ! Get rank hostnames
 hostLen = LEN(trim(adjustl(hostname)))
 CALL MPI_ALLREDUCE(hostLen, maxHostLen, 1, MPI_INTEGER, MPI_MAX, COMM, mpiErr)
-IF (rank == 0) THEN
-  ALLOCATE(allHostNames(maxHostLen*numRanks))
-ENDIF
+! IF (rank == 0) THEN
+!   ALLOCATE(allHostNames(maxHostLen*numRanks))
+! ENDIF
+ALLOCATE(allHostNames(maxHostLen*numRanks))
 
 CALL MPI_GATHER(trim(adjustl(hostname)), maxHostLen, MPI_CHARACTER, allHostNames, &
   maxHostLen, MPI_CHARACTER, 0, COMM, mpiErr)
@@ -2666,9 +2672,10 @@ CALL MPI_GATHER(trim(adjustl(hostname)), maxHostLen, MPI_CHARACTER, allHostNames
 CALL WRITE_DATASET_STR_LIST(fileId, "rankNodes", 0, &
   INT8( (/ maxHostLen, numRanks /) ), allHostNames, COMM)
 
-IF (rank == 0) THEN
-  DEALLOCATE(allHostNames)
-ENDIF
+! IF (rank == 0) THEN
+!   DEALLOCATE(allHostNames)
+! ENDIF
+DEALLOCATE(allHostNames)
 
 CALL h5fclose_f(fileId, h5err)
 

@@ -252,10 +252,10 @@ IF (NDIM == 2) THEN
   yElems = yElems / NPX
 ELSEIF (NDIM == 3) THEN
   xElems = xElems / (NPY*NPZ)
-  yElems = yElems / (NPX*NPY)
+  yElems = yElems / (NPX*NPZ)
   d = MIN(NDIM, 3)
   zElemsTmp(domIndex(d)+1) = localRaShape(d)
-  CALL MPI_ALLREDUCE(zElemsTmp, zElems, NPY, MPI_INTEGER, MPI_SUM, COMM, mpiErr)
+  CALL MPI_ALLREDUCE(zElemsTmp, zElems, NPZ, MPI_INTEGER, MPI_SUM, COMM, mpiErr)
   ZElems = zElems / (NPX*NPY)
   ! set raShape(3), but use d to avoid error when NDIM=2
   raShape(d) = zElems(domIndex(d)+1)
@@ -266,7 +266,6 @@ raShape(1) = xElems(domIndex(1)+1)
 raShape(2) = yElems(domIndex(2)+1)
 DO d = 1, NDIM
   IF (raShape(d) /= localRaShape(d)) THEN
-    CALL MPI_COMM_RANK(COMM, rank, mpiErr)
     CALL MPI_COMM_RANK(COMM, rank, mpiErr)
     PRINT *, 'Error (in mod_io 8): rank ', rank, ' should have ', raShape(d), &
       ' elements (like all other procs in same line) in dir ', d, ' but has ', localRaShape(d)
@@ -577,11 +576,12 @@ ELSE
     CALL MPI_BCAST(hostName, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER, 0, &
       COMM, mpiErr)
     hostNameRank0 = hostName
-    ALLOCATE(onFirstNode(numRanks))
+    ! ALLOCATE(onFirstNode(numRanks))
   ELSE
     CALL MPI_BCAST(hostNameRank0, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER, 0,&
       COMM, mpiErr)
   ENDIF
+  ALLOCATE(onFirstNode(numRanks))
   sameNameAsRank0 = 0
   IF (hostName == hostNameRank0) sameNameAsRank0 = 1
   CALL MPI_GATHER(sameNameAsRank0, 1, MPI_INTEGER, onFirstNode, 1,&
