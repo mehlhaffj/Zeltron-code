@@ -615,8 +615,9 @@ ELSE
     IF (ranksPerNode == 1) THEN
       rankOrder = 1
     ENDIF
-    DEALLOCATE(onFirstNode)
+    ! DEALLOCATE(onFirstNode)
   ENDIF
+  DEALLOCATE(onFirstNode)
   CALL MPI_BCAST(rankOrder, 1, MPI_INTEGER, 0, COMM, mpiErr)
   CALL MPI_BCAST(ranksPerNode, 1, MPI_INTEGER, 0, COMM, mpiErr)
 ENDIF
