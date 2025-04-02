@@ -712,6 +712,7 @@ END SUBROUTINE COUNT_ESCAPE
 !     n0 <= 0 means no injection, even if BOUND_PART_[X|Y|Z]MIN.EQ."INJECT"
 ! - speed: Injected plasma bulk speed in units of c for particle boundary
 !     condition INJECT
+! - [x|y|z]minp: The [x|y|z] minimum coordinate on this MPI domain
 ! - theta: Injected plasma comoving temperature in units of mc^2/k for particle
 !     boundary condition INJECT
 !     theta can be equal to 0, but numbers bigger than 0 and smaller than
@@ -722,15 +723,18 @@ END SUBROUTINE COUNT_ESCAPE
 ! OUTPUT: Updated particle distribution function at time t+dt
 !***********************************************************************
 
-SUBROUTINE BOUNDARIES_PARTICLES(pcl,pcl_data,tag,NPP,n0,speed,theta,up,gFp,ps,gFs,ND)
+SUBROUTINE BOUNDARIES_PARTICLES(pcl,pcl_data,tag,NPP,n0,speed,theta,xminp,yminp,zminp,up,gFp,ps,gFs,ND)
 
 IMPLICIT NONE
 
 INTEGER*8 :: ip,is,NPP,NTEMP,NINJ
 DOUBLE PRECISION, ALLOCATABLE :: pcl(:,:),pcl_inj(:,:)
 DOUBLE PRECISION, ALLOCATABLE :: pcl_data(:,:),pcl_data_inj(:,:)
-INTEGER*8, ALLOCATABLE        :: tag(:),tag_inj(:,:)
+INTEGER*8, ALLOCATABLE        :: tag(:),tag_inj(:)
 DOUBLE PRECISION              :: x,y,z,ux,uy,uz,wt
+
+DOUBLE PRECISION, INTENT(IN)  :: n0,speed,theta
+DOUBLE PRECISION, INTENT(IN)  :: xminp,yminp,zminp
 
 DOUBLE PRECISION, DIMENSION(:),   INTENT(IN), OPTIONAL :: up,gFp,ps
 DOUBLE PRECISION, DIMENSION(:,:), INTENT(IN), OPTIONAL :: gFs

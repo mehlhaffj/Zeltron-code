@@ -1126,7 +1126,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_ed,NED)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_ed,pcl_data_ed,taged,NED,nd0,betad,thde,upe,gFpe,pse,gFse,ND)
+  CALL BOUNDARIES_PARTICLES(pcl_ed,pcl_data_ed,taged,NED,nd0,betad,thde,xminp,yminp,zminp,upe,gFpe,pse,gFse,ND)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_ed,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NED,NESC)
@@ -1158,7 +1158,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_pd,NPD)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_pd,pcl_data_pd,tagpd,NPD,nd0,betad,thdi,upp,gFpp,psp,gFsp,ND)
+  CALL BOUNDARIES_PARTICLES(pcl_pd,pcl_data_pd,tagpd,NPD,nd0,betad,thdi,xminp,yminp,zminp,upp,gFpp,psp,gFsp,ND)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_pd,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NPD,NESC)
@@ -1190,7 +1190,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_eb,NEB)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_eb,pcl_data_eb,tageb,NEB,0d0,0d0,0d0)
+  CALL BOUNDARIES_PARTICLES(pcl_eb,pcl_data_eb,tageb,NEB,0d0,0d0,0d0,xminp,yminp,zminp)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_eb,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NEB,NESC)
@@ -1222,7 +1222,7 @@ DO it=it0+1,it0+NT
   CALL PUSH_PARTICLES(pcl_pb,NPB)
                   
   ! Applying boundary conditions to the particles
-  CALL BOUNDARIES_PARTICLES(pcl_pb,pcl_data_pb,tagpb,NPB,0d0,0d0,0d0)
+  CALL BOUNDARIES_PARTICLES(pcl_pb,pcl_data_pb,tagpb,NPB,0d0,0d0,0d0,xminp,yminp,zminp)
   
   ! Counting the particles leaving each subdomain
   CALL COUNT_ESCAPE(pcl_pb,xminp,xmaxp,yminp,ymaxp,zminp,zmaxp,NPB,NESC)

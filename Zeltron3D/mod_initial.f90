@@ -641,6 +641,10 @@ Jx(ix,iy,iz)=0.0
 Jy(ix,iy,iz)=0.0
 Jz(ix,iy,iz)=0.0
 
+ENDDO
+ENDDO
+ENDDO
+
 ELSE IF ((INIT.EQ."UNIFORM").OR.(INIT.EQ."MONOPOLE")) THEN
 !***********************************************************************
 ! Initial plasma parameters according to a monopolar or uniform initial field 
@@ -786,7 +790,6 @@ Jx(ix,iy,iz) = 0.0
 Jy(ix,iy,iz) = 0.0
 Jz(ix,iy,iz) = 0.0
 
-
 ENDDO
 ENDDO
 ENDDO
@@ -827,7 +830,9 @@ DOUBLE PRECISION, INTENT(IN)            :: x,y,z
 DOUBLE PRECISION, INTENT(OUT)           :: bhatx,bhaty,bhatz
 DOUBLE PRECISION, INTENT(OUT), OPTIONAL :: bmag
 
-DOUBLE PRECISION :: r0,rmp,bmagtemp
+DOUBLE PRECISION :: r0,rmp,bmagtemp,B0
+
+B0=me*c*c/(e*rhoc)
 
 IF (INIT.EQ."UNIFORM") THEN
 
@@ -882,12 +887,24 @@ FUNCTION ROTATION_PROFILE(x,y)
 IMPLICIT NONE
 
 DOUBLE PRECISION, INTENT(IN)  :: x,y
-DOUBLE PRECISION, INTENT(OUT) :: ROTATION_PROFILE
+DOUBLE PRECISION              :: ROTATION_PROFILE
 
 DOUBLE PRECISION :: rcyl
+DOUBLE PRECISION :: clamp_threshold = 4.0
 
 rcyl = SQRT( (x - 0d0)*(x - 0d0) + (y - 0d0)*(y - 0d0) )
-ROTATION_PROFILE=0.5*(1d0 - TANH( (rcyl - rnozzle)/delta_nozzle ))
+
+! Clamp to 0 or 1 in case delta_nozzle is 0
+! (avoid div-by-zero)
+IF (rcyl - rnozzle < -clamp_threshold * delta_nozzle) THEN
+    ROTATION_PROFILE=1d0
+ELSE IF (rcyl - rnozzle > clamp_threshold * delta_nozzle) THEN
+    ! This has the nice side-effect of shutting off macroparticle injection
+    ! once rcyl > clamp_threshold * delta_nozzle + rnozzle
+    ROTATION_PROFILE=0d0
+ELSE
+    ROTATION_PROFILE=0.5*(1d0 - TANH( (rcyl - rnozzle)/delta_nozzle ))
+END IF
 
 END FUNCTION ROTATION_PROFILE
 
@@ -1319,14 +1336,14 @@ z0c=zminp+(iz-1)*dz+z0c*dz
 
 up0=0.0
 
-CALL GEN_UP(up0,up,gFp,ND)
+CALL GEN_UP(up0,up,gFp,ND,PPC)
 
 !***********************************************************************
 ! Definition of the initial perpendicular momentum
 
 ps0=0.0
 
-CALL GEN_PS(ps0,ps,up0,up,gFs,ND)
+CALL GEN_PS(ps0,ps,up0,up,gFs,ND,PPC)
 
 uperp0=ps0*sqrt(1.0+up0*up0)
   
@@ -1532,15 +1549,16 @@ END SUBROUTINE INIT_DRIFT_MAXWELLIAN
 ! OUTPUT: distribution of up0
 !***********************************************************************
 
-SUBROUTINE GEN_UP(up0,up,gFp,ND)
+SUBROUTINE GEN_UP(up0,up,gFp,ND,NINJ)
 
 IMPLICIT NONE
 
-INTEGER :: ND
-DOUBLE PRECISION, DIMENSION(1:ND)  :: up,gFp
-DOUBLE PRECISION, DIMENSION(1:PPC) :: up0,Rp
-DOUBLE PRECISION                   :: gFp1,gFp2,u1,u2
-INTEGER, DIMENSION(1)              :: minu
+INTEGER   :: ND
+INTEGER*8 :: NINJ
+DOUBLE PRECISION, DIMENSION(1:ND)   :: up,gFp
+DOUBLE PRECISION, DIMENSION(1:NINJ) :: up0,Rp
+DOUBLE PRECISION                    :: gFp1,gFp2,u1,u2
+INTEGER, DIMENSION(1)               :: minu
 
 ! Loop indexes
 INTEGER :: ic,iu
@@ -1552,7 +1570,7 @@ Rp=0.0
 CALL RANDOM_NUMBER(Rp)
 Rp=Rp*0.999
 
-DO ic=1,PPC
+DO ic=1,NINJ  ! PPC
 
 minu=minloc(abs(gFp-Rp(ic)))
 iu=minu(1)
@@ -1588,14 +1606,15 @@ END SUBROUTINE GEN_UP
 ! OUTPUT: distribution of ps0
 !***********************************************************************
 
-SUBROUTINE GEN_PS(ps0,ps,up0,up,gFs,ND)
+SUBROUTINE GEN_PS(ps0,ps,up0,up,gFs,ND,NINJ)
 
 IMPLICIT NONE
 
-INTEGER :: ND
+INTEGER   :: ND
+INTEGER*8 :: NINJ
 DOUBLE PRECISION, DIMENSION(1:ND)      :: ps,up
 DOUBLE PRECISION, DIMENSION(1:ND,1:ND) :: gFs
-DOUBLE PRECISION, DIMENSION(1:PPC)     :: ps0,up0,Rp
+DOUBLE PRECISION, DIMENSION(1:NINJ)    :: ps0,up0,Rp
 DOUBLE PRECISION                       :: F11,F12,F21,F22,fp,fq
 INTEGER, DIMENSION(1)                  :: minu,minf
 
@@ -1609,7 +1628,7 @@ Rp=0.0
 CALL RANDOM_NUMBER(Rp)
 Rp=Rp*0.999
 
-DO ic=1,PPC
+DO ic=1,NINJ  ! PPC
 
 minu=minloc(abs(up-up0(ic)))
 i1=minu(1)
@@ -1662,7 +1681,7 @@ END SUBROUTINE GEN_PS
 !   pcl_inj is never deallocated, but will be resized as necessary to
 !   contain all of the injected particles.
 !***********************************************************************
-SUBROUTINE INJ_DRIFT_MAXWELLIAN(pcl_inj,NINJ,speed,theta,n0,xminp,yminp,zminp,up,gFp,ps,gFs,ND)
+SUBROUTINE INJ_DRIFT_MAXWELLIAN(pcl_inj,NINJ,n0,speed,theta,xminp,yminp,zminp,up,gFp,ps,gFs,ND)
 
 IMPLICIT NONE
 
