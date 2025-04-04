@@ -40,12 +40,14 @@ c = 299792458e2
 e = 4.8032068e-10
 me=9.1093897e-28
 
-def plot_fields_slice(*args, **kwargs):
+def plot_avggam_slice(*args, **kwargs):
     it = args[0]
 
     simdir   = "./../"
     datadir  = os.path.join(simdir, "data")
     fielddir = os.path.join(datadir, "fields")
+    currentdir = os.path.join(datadir, "currents")
+    densitydir = os.path.join(datadir, "densities")
     params   = pu.get_sim_params_dict(simdir)
 
     #===========================================================================
@@ -68,6 +70,10 @@ def plot_fields_slice(*args, **kwargs):
     # zmono   = params["z_monopole [cm]"]
 
     # Derived parameters
+    omega = c / rlc
+    J0 = B0 * omega / (2 * np.pi)
+    ngj = B0 * omega / (2 * np.pi * c * e)
+
     xnorm = rlc
     ynorm = rlc
     znorm = rlc
@@ -75,6 +81,9 @@ def plot_fields_slice(*args, **kwargs):
     xlabel = r"$x/R_{\rm LC}$"
     ylabel = r"$y/R_{\rm LC}$"
     zlabel = r"$z/R_{\rm LC}$"
+
+    fieldnorm = J0
+    fieldnormstr = r"n_{\rm GJ}"
 
     Nx = int(np.round((xmax-xmin)/dx))
     Ny = int(np.round((ymax-ymin)/dy))
@@ -189,44 +198,43 @@ def plot_fields_slice(*args, **kwargs):
     if "vmax" in kwargs.keys():
         vmax_plot = kwargs["vmax"]
 
-    cmap = "RdBu_r"
+    cmap = "inferno"
     if "cmap" in kwargs.keys():
         cmap = kwargs["cmap"]
-    cmin = -1.0
+    cmin = 0.01
     if "cmin" in kwargs.keys():
         cmin = kwargs["cmin"]
-    cmax = 1.0
+    cmax = 10.0
     if "cmax" in kwargs.keys():
         cmax = kwargs["cmax"]
 
     #===========================================================================
     # Read simulation data
-    Bz = pu.readArrayFromHdf5(os.path.join(fielddir, "Bz_%s.h5" % it), "field")
-    By = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "field")
-    Bx = pu.readArrayFromHdf5(os.path.join(fielddir, "Bx_%s.h5" % it), "field")
-    Ez = pu.readArrayFromHdf5(os.path.join(fielddir, "Ez_%s.h5" % it), "field")
-    Ey = pu.readArrayFromHdf5(os.path.join(fielddir, "Ey_%s.h5" % it), "field")
-    Ex = pu.readArrayFromHdf5(os.path.join(fielddir, "Ex_%s.h5" % it), "field")
+    nbge = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_electrons_bg_%s.h5" % it), "field")
+    nbgi = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_ions_bg_%s.h5" % it), "field")
+    nje  = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_electrons_drift_%s.h5" % it), "field")
+    nji  = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_ions_drift_%s.h5" % it), "field")
 
-    Bz = Bz[dslice].squeeze()
-    By = By[dslice].squeeze()
-    Bx = Bx[dslice].squeeze()
-    Ez = Ez[dslice].squeeze()
-    Ey = Ey[dslice].squeeze()
-    Ex = Ex[dslice].squeeze()
+    # TODO: Start back up here
+    nbge = pu.readArrayFromHdf5(os.path.join(densitydir, "Uexyz_electrons_bg_%s.h5" % it), "field")
+    nbgi = pu.readArrayFromHdf5(os.path.join(densitydir, "Uexyz_ions_bg_%s.h5" % it), "field")
+    nje  = pu.readArrayFromHdf5(os.path.join(densitydir, "Uexyz_electrons_drift_%s.h5" % it), "field")
+    nji  = pu.readArrayFromHdf5(os.path.join(densitydir, "Uexyz_ions_drift_%s.h5" % it), "field")
+
+    nbg = nbge  + nbgi
+    nj  = nje + nji
+
+    nj  = nj[dslice].squeeze()
+    nbg = nbg[dslice].squeeze()
 
     if need_transpose:
-        Bz = np.transpose(Bz)
-        By = np.transpose(By)
-        Bx = np.transpose(Bx)
-        Ez = np.transpose(Ez)
-        Ey = np.transpose(Ey)
-        Ex = np.transpose(Ex)
+        nj  = np.transpose(nj)
+        nbg = np.transpose(nbg)
 
     #===========================================================================
     # Build figure
-    nrows = 2
-    ncols = 3
+    nrows = 3
+    ncols = 1
     cbar_location = "top"
     cbar_mode = "single"
     cbar_size = "7%"
@@ -260,130 +268,70 @@ def plot_fields_slice(*args, **kwargs):
         cbar_pad = cbar_pad,
     )
 
+    norm = colors.LogNorm(vmin=cmin, vmax=cmax)
+
     #===========================================================================
-    # Ex
+    # nj
     ax = grid[0]
     ax.grid(False)
     ax.set_title(titlestr, loc = "left")
     pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, Ex/B0,
+        hcoords/hnorm, vcoords/vnorm, nj/fieldnorm,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = norm,
+        # vmin = cmin, vmax = cmax
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
     ax.set_xlim((hmin_plot, hmax_plot))
     ax.set_ylim((vmin_plot, vmax_plot))
     ax.text(
-        texth, textv, r"$E_x/B_0$",
+        texth, textv, r"$n_{\rm j}/%s$" % fieldnormstr,
         ha = textha, va = textva,
         path_effects = path_effects,
     )
     ax.set_aspect("equal")
 
     #===========================================================================
-    # Ey
+    # nbg
     ax = grid[1]
     ax.grid(False)
     pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, Ey/B0,
+        hcoords/hnorm, vcoords/vnorm, nbg/fieldnorm,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = norm,
+        # vmin = cmin, vmax = cmax
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
     ax.set_xlim((hmin_plot, hmax_plot))
     ax.set_ylim((vmin_plot, vmax_plot))
     ax.text(
-        texth, textv, r"$E_y/B_0$",
+        texth, textv, r"$n_{\rm bg}/%s$" % fieldnormstr,
         ha = textha, va = textva,
         path_effects = path_effects,
     )
     ax.set_aspect("equal")
 
     #===========================================================================
-    # Ez
+    # nbg + nj
     ax = grid[2]
     ax.grid(False)
     pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, Ez/B0,
+        hcoords/hnorm, vcoords/vnorm, (nbg + nj)/fieldnorm,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = norm,
+        # vmin = cmin, vmax = cmax
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
     ax.set_xlim((hmin_plot, hmax_plot))
     ax.set_ylim((vmin_plot, vmax_plot))
     ax.text(
-        texth, textv, r"$E_z/B_0$",
-        ha = textha, va = textva,
-        path_effects = path_effects,
-    )
-    ax.set_aspect("equal")
-    ax.set_aspect("equal")
-
-    #===========================================================================
-    # Bx
-    ax = grid[3]
-    ax.grid(False)
-    pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, Bx/B0,
-        cmap = cmap,
-        shading = "auto",
-        vmin = cmin, vmax = cmax
-    )
-    ax.set_xlabel(hlabel)
-    ax.set_ylabel(vlabel)
-    ax.set_xlim((hmin_plot, hmax_plot))
-    ax.set_ylim((vmin_plot, vmax_plot))
-    ax.text(
-        texth, textv, r"$B_x/B_0$",
-        ha = textha, va = textva,
-        path_effects = path_effects,
-    )
-    ax.set_aspect("equal")
-
-    #===========================================================================
-    # By
-    ax = grid[4]
-    ax.grid(False)
-    pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, By/B0,
-        cmap = cmap,
-        shading = "auto",
-        vmin = cmin, vmax = cmax
-    )
-    ax.set_xlabel(hlabel)
-    ax.set_ylabel(vlabel)
-    ax.set_xlim((hmin_plot, hmax_plot))
-    ax.set_ylim((vmin_plot, vmax_plot))
-    ax.text(
-        texth, textv, r"$B_y/B_0$",
-        ha = textha, va = textva,
-        path_effects = path_effects,
-    )
-    ax.set_aspect("equal")
-
-    #===========================================================================
-    # Bz
-    ax = grid[5]
-    ax.grid(False)
-    pm = ax.pcolormesh(
-        hcoords/hnorm, vcoords/vnorm, Bz/B0,
-        cmap = cmap,
-        shading = "auto",
-        vmin = cmin, vmax = cmax,
-        path_effects = path_effects,
-    )
-    ax.set_xlabel(hlabel)
-    ax.set_ylabel(vlabel)
-    ax.set_xlim((hmin_plot, hmax_plot))
-    ax.set_ylim((vmin_plot, vmax_plot))
-    ax.text(
-        texth, textv, r"$B_z/B_0$",
+        texth, textv, r"$n_{\rm tot}/%s$" % fieldnormstr,
         ha = textha, va = textva,
         path_effects = path_effects,
     )
@@ -395,14 +343,14 @@ def plot_fields_slice(*args, **kwargs):
     ax.cax.colorbar(pm)
 
     #===========================================================================
-    fname=".././data/plots/fields_%s_%s.png" % (slicestr, it)
+    fname=".././data/plots/avggam_%s_%s.png" % (slicestr, it)
     if "save" in kwargs.keys():
         fname = kwargs["save"]
     plt.savefig(fname, bbox_inches="tight")
 
 args, kwargs = pu.getArgsAndKwargs(sys.argv[1:])
 if len(args) == 0:
-    print("usage: python plot_fields_slice.py timestep [keywords]")
+    print("usage: python plot_avggam_slice.py timestep [keywords]")
     print("  Plot E&B fields on one 2D plane")
     print("  ix=;iy=;iz=")
     print("  Plane is specied by one cell index in x, y, or z")
@@ -421,4 +369,4 @@ if len(args) == 0:
     # print("  norm = [bunif (default), bcone, bparab]")
     # print("  smooth = 0 (no smoothing), 1, 2, 3, ...")
     sys.exit(0)
-plot_fields_slice(*args,**kwargs)
+plot_avggam_slice(*args,**kwargs)

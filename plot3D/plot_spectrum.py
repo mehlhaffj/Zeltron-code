@@ -31,13 +31,14 @@ import math
 import matplotlib.pyplot as plt
 import sys
 
-def plot_spectrum(it,spec):
+def plot_spectrum(*args, **kwargs):
+    it = args[0]
 
-    if it=='':
-       it='0'
-
-    if spec=='':
-       spec='electrons'
+    spec = args[1]
+    
+    spec = "both"
+    if "species" in kwargs:
+        spec = kwargs["species"]
 
     #===============================================================================
     # 4-velocity
@@ -45,8 +46,14 @@ def plot_spectrum(it,spec):
     u=u[0:len(u)-1]
     
     # Spectrum
-    dNdud=numpy.loadtxt(".././Zeltron3D/data/spectrum_"+spec+"_drift"+it+".dat")
-    dNdub=numpy.loadtxt(".././Zeltron3D/data/spectrum_"+spec+"_bg"+it+".dat")
+    if spec == "both":
+        dNdud =numpy.loadtxt(".././Zeltron3D/data/spectrum_electrons_drift"+it+".dat")
+        dNdub =numpy.loadtxt(".././Zeltron3D/data/spectrum_electrons_bg"+it+".dat")
+        dNdud+=numpy.loadtxt(".././Zeltron3D/data/spectrum_ions_drift"+it+".dat")
+        dNdub+=numpy.loadtxt(".././Zeltron3D/data/spectrum_ions_bg"+it+".dat")
+    else:
+        dNdud=numpy.loadtxt(".././Zeltron3D/data/spectrum_"+spec+"_drift"+it+".dat")
+        dNdub=numpy.loadtxt(".././Zeltron3D/data/spectrum_"+spec+"_bg"+it+".dat")
     
     # Total spectrum
     dNdu=dNdud+dNdub
@@ -63,8 +70,34 @@ def plot_spectrum(it,spec):
     
     #===============================================================================
 
-    plt.show()
+    # plt.show()
+    fname=".././data/plots/spectrum_%s.png" % (it)
+    if "save" in kwargs.keys():
+        fname = kwargs["save"]
+    plt.savefig(fname, bbox_inches="tight")
     
     #===============================================================================
 
-plot_spectrum(sys.argv[1],sys.argv[2])
+args, kwargs = pu.getArgsAndKwargs(sys.argv[1:])
+if len(args) == 0:
+    print("usage: python plot_densities_slice.py timestep [keywords]")
+    print("  Plot E&B fields on one 2D plane")
+    print("  ix=;iy=;iz=")
+    print("  Plane is specied by one cell index in x, y, or z")
+    print("  Default is iy=0")
+    print("  species = [electrons|ions|both] default is 'both'")
+    print("  hmin/hmax = the min/max abscissa axis values")
+    print("  vmin/vmax = the min/max ordinate axis values")
+    # print("  cmin/cmax = the min/max colorbar values")
+    print("  save = the file name (including extension) to save the figure to")
+    print("  verbose = True/False -- print runtime diagnostic information")
+    # print("  fieldnorm = normalize E/B fields by this multiple of B0")
+    # print("  reduceRes = 1 (no reduction), 2, 3, 4, ...")
+    # print("  redResPow2 = 0 (no reduction), 1, 2, ...")
+    # print("     reduce resolution in each dimension by specified factor of 2")
+    # print("     'smooth' smooths is applied each time (including if redResPow2 = 0)")
+    # print("  smooth = 0 (no smoothing), 1, 2, 3, ...")
+    # print("  norm = [bunif (default), bcone, bparab]")
+    # print("  smooth = 0 (no smoothing), 1, 2, 3, ...")
+    sys.exit(0)
+plot_spectrum(*args, **kwargs)

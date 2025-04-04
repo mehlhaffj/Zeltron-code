@@ -32,7 +32,7 @@ from matplotlib.ticker import AutoLocator, MaxNLocator
 import plotutil as pu
 from custom_cmaps import register_custom_cmaps
 
-plt.style.use("~/repos/knturb/scripts/aa_ppt.mplstyle")
+plt.style.use("~/repos/public_zeltron/plot3D/aa_ppt.mplstyle")
 register_custom_cmaps(plt)
 figsizeHere = np.array([1., 4.]) * np.array(plt.rcParams["figure.figsize"])
 
