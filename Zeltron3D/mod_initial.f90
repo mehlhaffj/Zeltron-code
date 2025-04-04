@@ -926,9 +926,10 @@ SUBROUTINE WEIGHT(pcl0,delta,NPP)
 
 IMPLICIT NONE
 
+INTEGER*8, INTENT(IN)                  :: NPP
 DOUBLE PRECISION, DIMENSION(1:7,1:NPP) :: pcl0
 DOUBLE PRECISION                       :: delta,y,y12,y14,y34
-INTEGER*8                              :: ip,NPP
+INTEGER*8                              :: ip
 
 !***********************************************************************
 
@@ -969,8 +970,9 @@ SUBROUTINE SET_TAG(tag,id,NPP)
 
 IMPLICIT NONE
 
+INTEGER*8, INTENT(IN) :: NPP
 INTEGER*8, DIMENSION(1:NPP) :: tag
-INTEGER*8 :: ip,NPP
+INTEGER*8 :: ip
 INTEGER   :: id
 
 !***********************************************************************

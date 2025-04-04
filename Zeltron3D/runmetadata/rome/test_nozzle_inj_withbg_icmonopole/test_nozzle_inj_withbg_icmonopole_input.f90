@@ -117,7 +117,7 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="MONOPOLE"
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Number of cells in X
-INTEGER*8, PARAMETER, PUBLIC :: NCX=128
+INTEGER*8, PARAMETER, PUBLIC :: NCX=192
 
 ! Number of cells in Y
 INTEGER*8, PARAMETER, PUBLIC :: NCY=NCX
@@ -131,13 +131,13 @@ INTEGER*8, PARAMETER, PUBLIC :: PPC=1
 ! Number of process (domain decomposition in the X- Y- and Z-directions)
 INTEGER, PARAMETER, PUBLIC :: NPX=2
 INTEGER, PARAMETER, PUBLIC :: NPY=2
-INTEGER, PARAMETER, PUBLIC :: NPZ=4
+INTEGER, PARAMETER, PUBLIC :: NPZ=8
 
 ! Mass ratio IONS/ELECTRONS
 DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0
 
 ! Spatial boundaries in the X-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-384d0,xmax=384d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-144d0,xmax=144d0
 
 ! Spatial boundaries in the Y-direction
 DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
@@ -146,7 +146,7 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
 DOUBLE PRECISION, PARAMETER, PUBLIC :: zmin=0d0,zmax=(xmax-xmin)*NCZ/NCX
 
 ! Dump data frequency in terms of timesteps
-INTEGER, PARAMETER, PUBLIC :: FDUMP=10
+INTEGER, PARAMETER, PUBLIC :: FDUMP=20
 
 ! Number of data dumps
 INTEGER, PARAMETER, PUBLIC :: NDUMP=20
@@ -231,6 +231,10 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: guide_field=0.0
                                           
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+! Total (electron+positron) sigma with respect to initially placed, at-rest
+! background plasma
+DOUBLE PRECISION, PARAMETER, PUBLIC :: sigma_bg = 2d0**4
+
 ! Temperature in unit of me*c^2/k of the DRIFTING ELECTRONS in the co-moving frame
 DOUBLE PRECISION, PARAMETER, PUBLIC :: thde=0.1
 
@@ -238,10 +242,10 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: thde=0.1
 DOUBLE PRECISION, PARAMETER, PUBLIC :: thdi=thde
 
 ! Temperature in unit of me*c^2/k of the BACKGROUND ELECTRONS in the lab frame
-DOUBLE PRECISION, PARAMETER, PUBLIC :: thbe=1d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: thbe=1d0/SQRT(sigma_bg)
 
 ! Temperature in unit of mi*c^2/k of the BACKGROUND IONS in the lab frame
-DOUBLE PRECISION, PARAMETER, PUBLIC :: thbi=1d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: thbi=thbe
 
 ! Minimum Larmor radius of the electrons
 ! For INIT="RECONN", this is thde*me*c^2/(e*B0)
@@ -253,7 +257,7 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: rhoc=1d0
 DOUBLE PRECISION, PARAMETER, PUBLIC :: betad=0.5d0
 
 ! Ratio of initial BACKGROUND to DRIFTING particle number densities
-DOUBLE PRECISION, PARAMETER, PUBLIC :: ratio_nb2nd=0.0  ! 1.0/SQRT(2d0**4)
+DOUBLE PRECISION, PARAMETER, PUBLIC :: ratio_nb2nd=1.0/SQRT(sigma_bg)
 
 ! Energy density ratio between external radiation field and the magnetic field
 ! udens_ratio=Uph/Ub, where Ub=B0^2/8*pi
@@ -272,7 +276,7 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: udpmin=-1d2,udpmax=1d2
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! The magnetization injected across NOZZLE with INJECT particle BC
 ! This is the total magnetization (including electrons and positrons)
-DOUBLE PRECISION, PARAMETER, PUBLIC :: sigma_inj = 2d0**4  ! 1.0/(ratio_nb2nd**2)
+DOUBLE PRECISION, PARAMETER, PUBLIC :: sigma_inj = SQRT(sigma_bg)
 ! The multiplicity injected across NOZZLE with INJECT particle BC
 DOUBLE PRECISION, PARAMETER, PUBLIC :: kappa  = 6.0
 

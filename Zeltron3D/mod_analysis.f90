@@ -1516,6 +1516,7 @@ IMPLICIT NONE
 
 INCLUDE 'mpif.h'
 
+INTEGER*8                                        :: NPP
 INTEGER                                          :: id,COMM,ierr
 DOUBLE PRECISION, DIMENSION(1:NNU)               :: nu
 DOUBLE PRECISION, DIMENSION(1:NPHI)              :: pref
@@ -1541,7 +1542,7 @@ DOUBLE PRECISION, DIMENSION(1)                   :: minnu
 DOUBLE PRECISION, DIMENSION(1)                   :: minp
 DOUBLE PRECISION, DIMENSION(1)                   :: minl
 CHARACTER(len=10)                                :: cit,sym,spec,CNLBA
-INTEGER*8                                        :: ip,NPP
+INTEGER*8                                        :: ip
 INTEGER                                          :: in,iph,il
 INTEGER                                          :: in2,iph2,il2,it
 !***********************************************************************
@@ -1608,7 +1609,7 @@ DO ip=1,NPP
   uz=pcl(6,ip)
   wt=pcl(7,ip)
 
-  IF (y.LT.yhalf) THEN
+  IF (INIT.NEQ."RECONN".OR.y.LT.yhalf) THEN
 
     IF (ux*ux+uz*uz.EQ.0d0) THEN
     lambda=0d0
