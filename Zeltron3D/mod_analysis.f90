@@ -562,20 +562,30 @@ Pxyp = Pxyp * iVol
 Pxzp = Pxzp * iVol
 Pyzp = Pyzp * iVol
 
+IF (ANALYZE_PTCL_FLUX) THEN
 CALL DUMP_FIELD_NOUGC('./data/densities/Fx_' // trim(spec) // "_" // trim(sym),&
   'field', Fxp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Fy_' // trim(spec) // "_" // trim(sym),&
   'field', Fyp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Fz_' // trim(spec) // "_" // trim(sym),&
   'field', Fzp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
+END IF
+
+IF (ANALYZE_EN_DENS) THEN
 CALL DUMP_FIELD_NOUGC('./data/densities/Ue_' // trim(spec) // "_" // trim(sym),&
   'field', Uep(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
+END IF
+
+IF (ANALYZE_MOM_DENS) THEN
 CALL DUMP_FIELD_NOUGC('./data/densities/Upx_' // trim(spec) // "_" // trim(sym),&
   'field', Upxp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Upy_' // trim(spec) // "_" // trim(sym),&
   'field', Upyp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Upz_' // trim(spec) // "_" // trim(sym),&
   'field', Upzp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
+END IF
+
+IF (ANALYZE_PRESSURE) THEN
 CALL DUMP_FIELD_NOUGC('./data/densities/Pxx_' // trim(spec) // "_" // trim(sym),&
   'field', Pxxp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Pyy_' // trim(spec) // "_" // trim(sym),&
@@ -588,6 +598,7 @@ CALL DUMP_FIELD_NOUGC('./data/densities/Pxz_' // trim(spec) // "_" // trim(sym),
   'field', Pxzp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
 CALL DUMP_FIELD_NOUGC('./data/densities/Pyz_' // trim(spec) // "_" // trim(sym),&
   'field', Pyzp(2:nrp(1)+1, 2:nrp(2)+1, 2:nrp(3)+1), it, COMM,xr,"x", yr,"y", zr,"z")
+END IF
 
 DEALLOCATE(Fxp) !}
 DEALLOCATE(Fyp) !}

@@ -658,7 +658,7 @@ IF (rank == rankToRead) THEN
   ra = dra
   DEALLOCATE(dra)
 ENDIF
-CALL MPI_BCAST(ra, raShape(1), MPI_INTEGER8, rankToRead, COMM, mpiErr)
+CALL MPI_BCAST(ra, INT(raShape(1)), MPI_INTEGER8, rankToRead, COMM, mpiErr)
 CALL h5dclose_f(dsetId, h5err)
 
 END SUBROUTINE READ_DATASET_1DINT8
@@ -780,7 +780,7 @@ IF (rank == rankToRead) THEN
   CALL h5sclose_f(filespace, h5err)
   CALL h5pclose_f(plistId, h5err)
 ENDIF
-CALL MPI_BCAST(ra, raShape, MPI_DOUBLE_PRECISION, rankToRead, COMM, mpiErr)
+CALL MPI_BCAST(ra, INT(raShape), MPI_DOUBLE_PRECISION, rankToRead, COMM, mpiErr)
 CALL h5dclose_f(dsetId, h5err)
 
 END SUBROUTINE READ_DATASET_3DDBL
@@ -835,6 +835,7 @@ INTEGER*8, ALLOCATABLE    :: entriesPerRank(:)
 INTEGER*8, ALLOCATABLE    :: rankOffset(:)
 INTEGER                   :: d
 INTEGER*8                 :: numLocalEntries
+LOGICAL                   :: isEmpty
 
 INTEGER(HSIZE_T)          :: localShape(2), globalShape(2), localOffset(2)
 INTEGER(HSIZE_T)          :: bLocalShape(3), bGlobalShape(3), bLocalOffset(3)
@@ -873,6 +874,10 @@ IF (writePerRankFiles) THEN
   CLOSE(9)
 ENDIF
 
+isEmpty = ((globalShape(1) == 0 .OR. globalShape(2) == 0))
+
+! HDF5 does not like zero-size datasets (unless extendible)
+IF (.NOT. isEmpty) THEN
 !{
 ! create data space for dataset
 CALL h5screate_simple_f(2, globalShape, filespace, h5err)
@@ -880,6 +885,7 @@ CALL h5screate_simple_f(2, localShape, memspace, h5err)
 ! create dataset with default properties
 CALL h5dcreate_f(fileId, datasetName, H5T_NATIVE_DOUBLE, filespace, &
   dsetId, h5err)
+ENDIF
 ! select the part that will be written by this domain
 CALL h5dget_space_f(dsetId, subspace, h5err)
 CALL h5sselect_hyperslab_f(subspace, H5S_SELECT_SET_F, localOffset, &
@@ -969,19 +975,19 @@ ENDIF !}
 IF (writeRankInfo) THEN
   ! write the number of entries for each rank
   CALL WRITE_DATASET_1DINT8(fileId, datasetName // 'EntriesPerRank', serialWritingRank, &
-    (/ INT8(numRanks) /), entriesPerRank, COMM)
+    (/ INT(numRanks, 8) /), entriesPerRank, COMM)
   ! write the offset for each rank
   CALL WRITE_DATASET_1DINT8(fileId, datasetName // 'StartingEntryPerRank', serialWritingRank,&
-    (/ INT8(numRanks+1) /), rankOffset, COMM)
+    (/ INT(numRanks+1, 8) /), rankOffset, COMM)
 ENDIF
 
 ! write step and time in serial
 IF (PRESENT(it)) THEN
-  CALL WRITE_DATASET_1DINT(fileId, 'step', serialWritingRank, (/ INT8(1) /), &
+  CALL WRITE_DATASET_1DINT(fileId, 'step', serialWritingRank, (/ INT(1, 8) /), &
     (/ it /), COMM)
 ENDIF
 IF (PRESENT(t)) THEN
-  CALL WRITE_DATASET_1DDBL(fileId, 'time', serialWritingRank, (/ INT8(1) /), &
+  CALL WRITE_DATASET_1DDBL(fileId, 'time', serialWritingRank, (/ INT(1, 8) /), &
     (/ t /), COMM)
 ENDIF
 
@@ -1151,6 +1157,7 @@ INTEGER*8, ALLOCATABLE    :: entriesPerRank(:)
 INTEGER*8, ALLOCATABLE    :: rankOffset(:)
 INTEGER                   :: d
 INTEGER*8                 :: numLocalEntries
+LOGICAL                   :: isEmpty
 
 INTEGER(HSIZE_T)          :: localShape(1), globalShape(1), localOffset(1)
 
@@ -1183,6 +1190,9 @@ CALL CUMSUM(entriesPerRank, rankOffset(1:numRanks), rankOffset(numRanks+1))
 globalShape(1) = rankOffset(numRanks+1)
 localOffset(1) = rankOffset(rank+1)
 
+! HDF5 does not like zero-size datasets (unless extendible)
+isEmpty = (globalShape(1) == 0)
+IF (.NOT. isEmpty) THEN
 !{
 ! create data space for dataset
 CALL h5screate_simple_f(1, globalShape, filespace, h5err)
@@ -1209,23 +1219,24 @@ CALL h5pclose_f(plistId2, h5err)
 CALL h5dclose_f(dsetId, h5err)
 CALL h5sclose_f(filespace, h5err)
 !}
+ENDIF
 
 IF (writeRankInfo) THEN
   ! write the number of entries for each rank
   CALL WRITE_DATASET_1DINT8(fileId, datasetName // 'EntriesPerRank', serialWritingRank, &
-    (/ INT8(numRanks) /), entriesPerRank, COMM)
+    (/ INT(numRanks, 8) /), entriesPerRank, COMM)
   ! write the offset for each rank
   CALL WRITE_DATASET_1DINT8(fileId, datasetName // 'StartingEntryPerRank', serialWritingRank,&
-    (/ INT8(numRanks+1) /), rankOffset, COMM)
+    (/ INT(numRanks+1, 8) /), rankOffset, COMM)
 ENDIF
 
 ! write step and time in serial
 IF (PRESENT(it)) THEN
-  CALL WRITE_DATASET_1DINT(fileId, 'step', serialWritingRank, (/ INT8(1) /),&
+  CALL WRITE_DATASET_1DINT(fileId, 'step', serialWritingRank, (/ INT(1, 8) /),&
     (/ it /), COMM)
 ENDIF
 IF (PRESENT(t)) THEN
-  CALL WRITE_DATASET_1DDBL(fileId, 'time', serialWritingRank, (/ INT8(1) /),&
+  CALL WRITE_DATASET_1DDBL(fileId, 'time', serialWritingRank, (/ INT(1, 8) /),&
     (/ t /), COMM)
 ENDIF
 
@@ -1487,7 +1498,7 @@ maxShape = localShape
 maxShape(FDIM) = H5S_UNLIMITED_F
   
 chunkShape(1) = localShape(1)
-chunkShape(FDIM) = MAX(1, entries)
+chunkShape(FDIM) = MAX(INT(1, HSIZE_T), entries)
 
 IF (.NOT.datasetExists) THEN
   CALL h5screate_simple_f(FDIM, localShape, filespace, h5err, maxShape)
@@ -1691,23 +1702,23 @@ FDIM = 1
 IF (PRESENT(ygp)) FDIM = 2
 IF (PRESENT(zgp)) FDIM = 3
 
-CALL WRITE_DATASET_1DINT(fileId, 'step', rankToWrite, (/ INT8(1) /), &
+CALL WRITE_DATASET_1DINT(fileId, 'step', rankToWrite, (/ INT(1, 8) /), &
   (/ it /), COMM)
 ! hdf5 transposes fortran arrays, so reverse axis labels
 IF (PRESENT(xgp) .AND. PRESENT(xLabel)) THEN
   write(dirStr,'(i1)') (FDIM-1)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    rankToWrite, INT8(SHAPE(xgp)), xgp, COMM, xLabel)
+    rankToWrite, INT(SHAPE(xgp), 8), xgp, COMM, xLabel)
 ENDIF
 IF (PRESENT(ygp) .AND. PRESENT(yLabel)) THEN
   write(dirStr,'(i1)') (FDIM-2)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    rankToWrite, INT8(SHAPE(ygp)), ygp, COMM, yLabel)
+    rankToWrite, INT(SHAPE(ygp), 8), ygp, COMM, yLabel)
 ENDIF
 IF (PRESENT(zgp) .AND. PRESENT(zLabel)) THEN
   write(dirStr,'(i1)') (FDIM-3)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    rankToWrite, INT8(SHAPE(zgp)), zgp, COMM, zLabel)
+    rankToWrite, INT(SHAPE(zgp), 8), zgp, COMM, zLabel)
 ENDIF
 
 END SUBROUTINE WRITE_GLOBAL_FIELD_EXTRAS
@@ -2017,23 +2028,23 @@ CALL h5sclose_f(memspace, h5err)
 CALL h5sclose_f(subspace, h5err)
 
 ! write step and grid-point coordinates in serial
-CALL WRITE_DATASET_1DINT(fileId, 'step', stepWritingRank, (/ INT8(1) /), &
+CALL WRITE_DATASET_1DINT(fileId, 'step', stepWritingRank, (/ INT(1, 8) /), &
   (/ it /), COMM)
 ! hdf5 transposes fortran arrays, so reverse axis labels
 IF (PRESENT(xgp) .AND. PRESENT(xLabel) .AND. FDIM >= 1) THEN
   write(dirStr,'(i1)') (FDIM-1)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    coordWritingRank, INT8(SHAPE(xgp)), xgp, COMM, xLabel)
+    coordWritingRank, INT(SHAPE(xgp), 8), xgp, COMM, xLabel)
 ENDIF
 IF (PRESENT(ygp) .AND. PRESENT(yLabel) .AND. FDIM >= 2) THEN
   write(dirStr,'(i1)') (FDIM-2)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    coordWritingRank, INT8(SHAPE(ygp)), ygp, COMM, yLabel)
+    coordWritingRank, INT(SHAPE(ygp), 8), ygp, COMM, yLabel)
 ENDIF
 IF (PRESENT(zgp) .AND. PRESENT(zLabel) .AND. FDIM >= 3) THEN
   write(dirStr,'(i1)') (FDIM-3)
   CALL WRITE_DATASET_1DDBL(fileId, 'axis' // dirStr // 'coords', &
-    coordWritingRank, INT8(SHAPE(zgp)), zgp, COMM, zLabel)
+    coordWritingRank, INT(SHAPE(zgp), 8), zgp, COMM, zLabel)
 ENDIF
 
 CALL h5fclose_f(fileId, h5err)
@@ -2610,17 +2621,17 @@ CALL h5fcreate_f("./data/info.h5", &
 CALL h5pclose_f(plistId, h5err)
 
 CALL WRITE_DATASET_1DINT(fileId, "numMpiRanks", 0, &
-  INT8( (/ 1 /) ), (/ numRanks /), COMM)
+  INT( (/ 1 /), 8 ), (/ numRanks /), COMM)
 
 CALL WRITE_DATASET_1DINT(fileId, "ranksPerNode", 0, &
-  INT8( (/ 1 /) ), (/ ranksPerNode /), COMM)
+  INT( (/ 1 /), 8 ), (/ ranksPerNode /), COMM)
 
 CALL WRITE_DATASET_1DINT(fileId, "rankOrder", 0, &
-  INT8( (/ 1 /) ), (/ rankOrder /), COMM, &
+  INT( (/ 1 /), 8 ), (/ rankOrder /), COMM, &
   "0=round robin, 1=adj ranks on same node")
 
 CALL WRITE_DATASET_1DINT(fileId, "domainDecomp", 0, &
-  INT8( (/ NDIM /) ), domainDecomp, COMM)
+  INT( (/ NDIM /), 8 ), domainDecomp, COMM)
 
 ! Get domain indices
 ! IF (rank == 0) THEN
@@ -2630,7 +2641,7 @@ ALLOCATE(domainIndices(NDIM, numRanks))
 CALL MPI_GATHER(domainIndex, NDIM, MPI_INTEGER, domainIndices, NDIM, &
   MPI_INTEGER, 0, COMM, mpiErr)
 CALL WRITE_DATASET_2DINT(fileId, "domainCoords", 0, &
-  INT8( (/ NDIM, numRanks /) ), domainIndices, COMM)
+  INT( (/ NDIM, numRanks /), 8 ), domainIndices, COMM)
 ! IF (rank == 0) THEN
 !   DEALLOCATE(domainIndices)
 ! ENDIF
@@ -2648,10 +2659,10 @@ CALL MPI_GATHER(domainLbs, NDIM, MPI_DOUBLE_PRECISION, domainLowerBounds, &
 CALL MPI_GATHER(domainUbs, NDIM, MPI_DOUBLE_PRECISION, domainUpperBounds, &
   NDIM, MPI_DOUBLE_PRECISION, 0, COMM, mpiErr)
 CALL WRITE_DATASET_2DDBL(fileId, "domainLowerBounds", 0, &
-  INT8( (/ NDIM, numRanks /) ), domainLowerBounds, COMM, &
+  INT( (/ NDIM, numRanks /), 8 ), domainLowerBounds, COMM, &
   "xminp, yminp, zminp for each rank")
 CALL WRITE_DATASET_2DDBL(fileId, "domainUpperBounds", 0, &
-  INT8( (/ NDIM, numRanks /) ), domainUpperBounds, COMM, &
+  INT( (/ NDIM, numRanks /), 8 ), domainUpperBounds, COMM, &
   "xmaxp, ymaxp, zmaxp for each rank")
 ! IF (rank == 0) THEN
 !   DEALLOCATE(domainLowerBounds, domainUpperBounds)
@@ -2670,7 +2681,7 @@ CALL MPI_GATHER(trim(adjustl(hostname)), maxHostLen, MPI_CHARACTER, allHostNames
   maxHostLen, MPI_CHARACTER, 0, COMM, mpiErr)
 
 CALL WRITE_DATASET_STR_LIST(fileId, "rankNodes", 0, &
-  INT8( (/ maxHostLen, numRanks /) ), allHostNames, COMM)
+  INT( (/ maxHostLen, numRanks /), 8 ), allHostNames, COMM)
 
 ! IF (rank == 0) THEN
 !   DEALLOCATE(allHostNames)

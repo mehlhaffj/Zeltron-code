@@ -1705,7 +1705,7 @@ INTEGER,                          INTENT(IN) :: ND
 !******************************
 
 ! Unit vectors defined by local field direction
-DOUBLE PRECISION :: bhatx,bhaty,bhatz,bmag
+DOUBLE PRECISION :: bhatx,bhaty,bhatz,bmag,B0
 DOUBLE PRECISION :: e1hatx,e1haty,e1hatz
 DOUBLE PRECISION :: e2hatx,e2haty,e2hatz
 
@@ -1726,6 +1726,8 @@ INTEGER*8 :: ip
 !******************************
 ! Begin code
 !******************************
+
+B0 = me*c*c/(e*rhoc)
 
 CALL INIT_RANDOM_SEED()
 
@@ -1874,6 +1876,9 @@ IF (pcl_inj(6,ip)<0d0) THEN
 ENDIF
 
 shutoff_factor = ROTATION_PROFILE(x0c,y0c)
+! Modify the shutoff_factor so that instead of a uniform plasma density, we
+! inject a uniform plasma magnetization
+shutoff_factor = shutoff_factor * (bmag / B0)**2
 ! Assign weights so that, downstream of the injection region where the average
 ! number of macro-particles per cell is (over_inject*PPC), the equivalent physical
 ! number density is (shutoff_factor*rate*)n0.
