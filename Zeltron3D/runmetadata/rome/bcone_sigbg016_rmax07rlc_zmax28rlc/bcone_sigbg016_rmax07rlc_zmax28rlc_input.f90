@@ -54,7 +54,7 @@ INTEGER, PARAMETER, PUBLIC :: NDIM=3
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Save particle and field data for future restoration of the simulation
-LOGICAL, PARAMETER, PUBLIC :: CHECKPOINT=.FALSE.
+LOGICAL, PARAMETER, PUBLIC :: CHECKPOINT=.TRUE.
 
 ! Restore a simulation where it stopped
 LOGICAL, PARAMETER, PUBLIC :: RESTORE=.FALSE.
@@ -64,7 +64,7 @@ LOGICAL, PARAMETER, PUBLIC :: RESTORE=.FALSE.
 ! N.B. It is highly recommended to have more than 1 checkpoint during
 ! the simulation, unless it is certain that the simulation will end
 ! naturally (as opposed to being killed before it is finished).
-DOUBLE PRECISION, PARAMETER, PUBLIC :: FSAVE=0.
+DOUBLE PRECISION, PARAMETER, PUBLIC :: FSAVE=3600 * 23.0
 
 ! Give the time step from which the simulation should restart
 INTEGER, PARAMETER, PUBLIC :: time_ref=0
@@ -117,7 +117,7 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="MONOPOLE"
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Number of cells in X
-INTEGER*8, PARAMETER, PUBLIC :: NCX=192
+INTEGER*8, PARAMETER, PUBLIC :: NCX=384
 
 ! Number of cells in Y
 INTEGER*8, PARAMETER, PUBLIC :: NCY=NCX
@@ -131,7 +131,7 @@ INTEGER*8, PARAMETER, PUBLIC :: PPC=10
 ! Number of process (domain decomposition in the X- Y- and Z-directions)
 INTEGER, PARAMETER, PUBLIC :: NPX=4
 INTEGER, PARAMETER, PUBLIC :: NPY=4
-INTEGER, PARAMETER, PUBLIC :: NPZ=32
+INTEGER, PARAMETER, PUBLIC :: NPZ=128
 
 ! Mass ratio IONS/ELECTRONS
 DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0

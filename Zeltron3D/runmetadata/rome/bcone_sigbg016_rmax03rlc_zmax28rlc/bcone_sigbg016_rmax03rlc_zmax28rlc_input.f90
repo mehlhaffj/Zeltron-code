@@ -54,7 +54,7 @@ INTEGER, PARAMETER, PUBLIC :: NDIM=3
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Save particle and field data for future restoration of the simulation
-LOGICAL, PARAMETER, PUBLIC :: CHECKPOINT=.FALSE.
+LOGICAL, PARAMETER, PUBLIC :: CHECKPOINT=.TRUE.
 
 ! Restore a simulation where it stopped
 LOGICAL, PARAMETER, PUBLIC :: RESTORE=.FALSE.
@@ -64,7 +64,7 @@ LOGICAL, PARAMETER, PUBLIC :: RESTORE=.FALSE.
 ! N.B. It is highly recommended to have more than 1 checkpoint during
 ! the simulation, unless it is certain that the simulation will end
 ! naturally (as opposed to being killed before it is finished).
-DOUBLE PRECISION, PARAMETER, PUBLIC :: FSAVE=0.
+DOUBLE PRECISION, PARAMETER, PUBLIC :: FSAVE=3600 * 23.0
 
 ! Give the time step from which the simulation should restart
 INTEGER, PARAMETER, PUBLIC :: time_ref=0
@@ -123,7 +123,7 @@ INTEGER*8, PARAMETER, PUBLIC :: NCX=192
 INTEGER*8, PARAMETER, PUBLIC :: NCY=NCX
 
 ! Number of cells in Z
-INTEGER*8, PARAMETER, PUBLIC :: NCZ=4*NCX
+INTEGER*8, PARAMETER, PUBLIC :: NCZ=8*NCX
 
 ! Number of particles per cell per species
 INTEGER*8, PARAMETER, PUBLIC :: PPC=10
@@ -131,13 +131,13 @@ INTEGER*8, PARAMETER, PUBLIC :: PPC=10
 ! Number of process (domain decomposition in the X- Y- and Z-directions)
 INTEGER, PARAMETER, PUBLIC :: NPX=4
 INTEGER, PARAMETER, PUBLIC :: NPY=4
-INTEGER, PARAMETER, PUBLIC :: NPZ=32
+INTEGER, PARAMETER, PUBLIC :: NPZ=64
 
 ! Mass ratio IONS/ELECTRONS
 DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0
 
 ! Spatial boundaries in the X-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-192d0,xmax=192d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-96d0,xmax=96d0
 
 ! Spatial boundaries in the Y-direction
 DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
