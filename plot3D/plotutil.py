@@ -1,6 +1,7 @@
 import numpy
 import os
 import tables
+import h5py
 np=numpy
 
 # # Class to import custom XML colormaps, of the kind you can download from
@@ -161,6 +162,14 @@ def readArrayFromHdf5(h5FileName, datasetName, slices = None,
 
   return res
 #}
+
+
+def readSpectrumFromHdf5(ifile):
+    h5file = h5py.File(ifile, 'r')
+    output = h5file["field"][...]
+    h5file.close()
+
+    return output
 
 
 class FieldNormalizer(object):

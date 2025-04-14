@@ -178,7 +178,7 @@ def plot_fields_slice(*args, **kwargs):
     hmin_plot = hmin/hnorm
     # xmin_plot = xmin/(sigc*rho0)
     if "hmin" in kwargs.keys():
-        hmin_plot = kwargs["hmax"]
+        hmin_plot = kwargs["hmin"]
 
     vmin_plot = vmin/vnorm
     # ymin_plot = ymin/(sigc*rho0)
@@ -198,6 +198,19 @@ def plot_fields_slice(*args, **kwargs):
     cmax = 1.0
     if "cmax" in kwargs.keys():
         cmax = kwargs["cmax"]
+
+    nrows = 2
+    if "nrows" in kwargs.keys():
+        nrows = kwargs["nrows"]
+    ncols = 3
+    if "ncols" in kwargs.keys():
+        ncols = kwargs["ncols"]
+
+    if nrows * ncols != 6:
+        print("Need to have nrows * ncols == 6.")
+        print("Got (nrows, ncols) = (%g, %g)" % (nrows, ncols))
+        print("Aborting...")
+        sys.exit(0)
 
     #===========================================================================
     # Read simulation data
@@ -225,8 +238,6 @@ def plot_fields_slice(*args, **kwargs):
 
     #===========================================================================
     # Build figure
-    nrows = 2
-    ncols = 3
     cbar_location = "top"
     cbar_mode = "single"
     cbar_size = "7%"
@@ -412,6 +423,8 @@ if len(args) == 0:
     print("  cmin/cmax = the min/max colorbar values")
     print("  save = the file name (including extension) to save the figure to")
     print("  verbose = True/False -- print runtime diagnostic information")
+    print("  nrows/ncols number of rows and columns in figure panels")
+    print("    Defaults to nrows = 2; ncols = 3. Need to have nrows*ncols = 6.")
     # print("  fieldnorm = normalize E/B fields by this multiple of B0")
     # print("  reduceRes = 1 (no reduction), 2, 3, 4, ...")
     # print("  redResPow2 = 0 (no reduction), 1, 2, ...")
