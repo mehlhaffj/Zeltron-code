@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import matplotlib as mpl
 
 # Function to import custom XML colormaps, of the kind you can download from
 # https://sciviscolor.org/colormaps/divergent/
@@ -66,4 +67,5 @@ kestrel = cmap_from_xml(os.path.join(xml_maps_path, "div1-blue-orange-div.xml"),
 def register_custom_cmaps(plt):
     # Add lines below to register new custom colormaps with an instance of
     # matplotlib
-    plt.cm.register_cmap(cmap=kestrel)
+    # plt.cm.register_cmap(cmap=kestrel)
+    mpl.colormaps.register(cmap=kestrel)

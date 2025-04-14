@@ -1609,7 +1609,7 @@ DO ip=1,NPP
   uz=pcl(6,ip)
   wt=pcl(7,ip)
 
-  IF (INIT.NEQ."RECONN".OR.y.LT.yhalf) THEN
+  IF (INIT.NE."RECONN".OR.y.LT.yhalf) THEN
 
     IF (ux*ux+uz*uz.EQ.0d0) THEN
     lambda=0d0
