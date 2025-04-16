@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # density)
     kappa = 6.0
     # Number of cells in x-direction
-    Nx = 2*192
+    Nx = 192  # 2*192
 
     # The light-cylinder radius
     rlc = 2 * kappa * siginj
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     rc = rmp / rlc * np.sqrt(sigbg) * (1. / (1. + rmp**2 / rnozzle**2)) * rmp
 
     # Boundaries of the simulation domain
-    xmax = Nx  # 4 * rc
+    xmax = 192.0  # 2 * rc  # 4 * rc
     xmin = -xmax
     Lx = xmax - xmin
 
@@ -102,7 +102,6 @@ if __name__ == "__main__":
         (c * dt, "c * dt", "CFL timestep"),
         (rlc / (c * dt), "R_LC / (c * dt)", ""),
         (Lx / (c * dt), "L_x / (c * dt)", ""),
-        (Lx / rlc, "L_x / R_LC", ""),
     ]
 
     print_quantities(quantities_symbols_descriptions)

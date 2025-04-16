@@ -117,27 +117,27 @@ CHARACTER(LEN=10), PARAMETER, PUBLIC :: INIT="MONOPOLE"
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ! Number of cells in X
-INTEGER*8, PARAMETER, PUBLIC :: NCX=192
+INTEGER*8, PARAMETER, PUBLIC :: NCX=384
 
 ! Number of cells in Y
 INTEGER*8, PARAMETER, PUBLIC :: NCY=NCX
 
 ! Number of cells in Z
-INTEGER*8, PARAMETER, PUBLIC :: NCZ=8*NCX
+INTEGER*8, PARAMETER, PUBLIC :: NCZ=4*NCX
 
 ! Number of particles per cell per species
-INTEGER*8, PARAMETER, PUBLIC :: PPC=10
+INTEGER*8, PARAMETER, PUBLIC :: PPC=5
 
 ! Number of process (domain decomposition in the X- Y- and Z-directions)
-INTEGER, PARAMETER, PUBLIC :: NPX=4
-INTEGER, PARAMETER, PUBLIC :: NPY=4
+INTEGER, PARAMETER, PUBLIC :: NPX=8
+INTEGER, PARAMETER, PUBLIC :: NPY=8
 INTEGER, PARAMETER, PUBLIC :: NPZ=128
 
 ! Mass ratio IONS/ELECTRONS
 DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0
 
 ! Spatial boundaries in the X-direction
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-192d0,xmax=192d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin=-384d0,xmax=384d0
 
 ! Spatial boundaries in the Y-direction
 DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
@@ -146,7 +146,7 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: ymin=xmin,ymax=xmax
 DOUBLE PRECISION, PARAMETER, PUBLIC :: zmin=0d0,zmax=(xmax-xmin)*NCZ/NCX
 
 ! Dump data frequency in terms of timesteps
-INTEGER, PARAMETER, PUBLIC :: FDUMP=100
+INTEGER, PARAMETER, PUBLIC :: FDUMP=200
 
 ! Number of data dumps
 INTEGER, PARAMETER, PUBLIC :: NDUMP=256
