@@ -75,9 +75,15 @@ def h5tovtk(it, if_einf=False):
     # r = np.geomspace(rmin, rmax, Nr)
     # th = np.linspace(thmin, thmax, Nth)
     # ph = np.linspace(0, 2 * np.pi, Nph)
-    x = np.linspace(xmin, xmax, Nx)
-    y = np.linspace(ymin, ymax, Ny)
-    z = np.linspace(zmin, zmax, Nz)
+    x = np.linspace(xmin, xmax, Nx + 1)
+    y = np.linspace(ymin, ymax, Ny + 1)
+    z = np.linspace(zmin, zmax, Nz + 1)
+    # Densities have one fewer cell in each dimension with respect to fields
+    # and the grid. Fix this by shaving off the last cell in the quantities
+    # with extra data.
+    x = x[:-1]
+    y = y[:-1]
+    z = z[:-1]
     # R, Th, Ph = np.meshgrid(r, th, ph, indexing="ij")
     # costh, sinth = np.cos(Th), np.sin(Th)
     # cosph, sinph = np.cos(Ph), np.sin(Ph)
@@ -109,6 +115,16 @@ def h5tovtk(it, if_einf=False):
     Ey   = pu.readArrayFromHdf5(os.path.join(fielddir, "Ey_%s.h5" % it), "field")
     Ex   = pu.readArrayFromHdf5(os.path.join(fielddir, "Ex_%s.h5" % it), "field")
 
+    # zB = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "axis0coords")
+    # yB = pu.readArrayFromHdf5(os.path.join(fielddir, "By_%s.h5" % it), "axis1coords")
+    # xB = pu.readArrayFromHdf5(os.path.join(fielddir, "Bx_%s.h5" % it), "axis2coords")
+    # zE = pu.readArrayFromHdf5(os.path.join(fielddir, "Ey_%s.h5" % it), "axis0coords")
+    # yE = pu.readArrayFromHdf5(os.path.join(fielddir, "Ey_%s.h5" % it), "axis1coords")
+    # xE = pu.readArrayFromHdf5(os.path.join(fielddir, "Ex_%s.h5" % it), "axis2coords")
+    # zn = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_electrons_bg_%s.h5" % it), "axis0coords")
+    # yn = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_electrons_bg_%s.h5" % it), "axis1coords")
+    # xn = pu.readArrayFromHdf5(os.path.join(densitydir, "mapxyz_electrons_bg_%s.h5" % it), "axis2coords")
+
     nbg = nbge + nbgi
     nj  = nje + nji
     ntot = nbg + nj
@@ -122,6 +138,16 @@ def h5tovtk(it, if_einf=False):
     Ex   = Ex.swapaxes(0, 2)
     Ey   = Ey.swapaxes(0, 2)
     Ez   = Ez.swapaxes(0, 2)
+
+    # Densities have one fewer cell in each dimension with respect to fields
+    # and the grid. Fix this by shaving off the last cell in the quantities
+    # with extra data.
+    Bx = Bx[:-1,:-1,:-1]
+    By = By[:-1,:-1,:-1]
+    Bz = Bz[:-1,:-1,:-1]
+    Ex = Ex[:-1,:-1,:-1]
+    Ey = Ey[:-1,:-1,:-1]
+    Ez = Ez[:-1,:-1,:-1]
 
     #===========================================================================
     # Derived fields
