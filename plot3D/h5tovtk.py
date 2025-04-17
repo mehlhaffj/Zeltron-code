@@ -16,14 +16,6 @@
 # You should have received a copy of the GNU General Public License     !
 # along with this program. If not, see <http://www.gnu.org/licenses/>.  !
 #***********************************************************************!
-#
-# This python script will draw the total electron or ion energy spectrum:
-# dN/du(u), where u is the 4 velocity, at a given time step it.
-#
-# To execute, type for instance:$ python plot_spectrum.py 0 ions &
-# This command will draw the ions spectrum at time step 0.
-#
-#***********************************************************************!
 
 import sys
 import numpy as np
@@ -34,5 +26,14 @@ import plotutil as pu
 args, kwargs = pu.getArgsAndKwargs(sys.argv[1:])
 if len(args) == 0:
     print("usage: python h5tovtk.py timestep [keywords]")
+    print("  redResPow2 = 0 (no reduction), 1, 2, ...")
+    print("     reduce resolution in each dimension by specified factor of 2")
+    print("     nearest-neighbor averaged is performed for each power of 2")
+    print("     so that reduced-res grids hold the average over neigboring")
+    print("     cells in their parent grids")
+    print("     redResPow2 will only work for (reduced) grid sizes of powers")
+    print("     of 2.")
     sys.exit(0)
-vtkutil.h5tovtk(*args, **kwargs)
+# vtkutil.h5tovtk_sgrid(*args, **kwargs)
+# vtkutil.h5tovtk_imagedata(*args, **kwargs)
+vtkutil.h5tovtk_rgrid(*args, **kwargs)
