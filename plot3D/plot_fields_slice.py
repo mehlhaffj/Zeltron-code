@@ -198,6 +198,15 @@ def plot_fields_slice(*args, **kwargs):
     cmax = 1.0
     if "cmax" in kwargs.keys():
         cmax = kwargs["cmax"]
+    clog = False
+    if "clog" in kwargs.keys():
+        clog = kwargs["clog"]
+    clinthresh = cmax / 10.0
+    if "clinthresh" in kwargs.keys():
+        clinthresh = kwargs["clinthresh"]
+    clinscale = 0.5
+    if "clinscale" in kwargs.keys():
+        clinscale = kwargs["clinscale"]
 
     nrows = 2
     if "nrows" in kwargs.keys():
@@ -271,6 +280,16 @@ def plot_fields_slice(*args, **kwargs):
         cbar_pad = cbar_pad,
     )
 
+    cnorm = colors.Normalize(cmin, cmax)
+    if clog and cmin*cmax > 0.0:
+        cnorm = colors.LogNorm(cmin, cmax)
+    if clog and cmin*cmax < 0.0:
+        cnorm = colors.SymLogNorm(
+            clinthresh, linscale=clinscale,
+            vmin=cmin, vmax=cmax
+        )
+
+
     #===========================================================================
     # Ex
     ax = grid[0]
@@ -280,7 +299,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, Ex/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = cnorm,
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
@@ -301,7 +320,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, Ey/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = cnorm,
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
@@ -322,7 +341,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, Ez/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = cnorm,
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
@@ -344,7 +363,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, Bx/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = cnorm,
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
@@ -365,7 +384,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, By/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax
+        norm = cnorm,
     )
     ax.set_xlabel(hlabel)
     ax.set_ylabel(vlabel)
@@ -386,7 +405,7 @@ def plot_fields_slice(*args, **kwargs):
         hcoords/hnorm, vcoords/vnorm, Bz/B0,
         cmap = cmap,
         shading = "auto",
-        vmin = cmin, vmax = cmax,
+        norm = cnorm,
         path_effects = path_effects,
     )
     ax.set_xlabel(hlabel)
@@ -421,6 +440,8 @@ if len(args) == 0:
     print("  hmin/hmax = the min/max abscissa axis values")
     print("  vmin/vmax = the min/max ordinate axis values")
     print("  cmin/cmax = the min/max colorbar values")
+    print("  clog = True/False(default) -- whether colorbar is logarithmic")
+    print("  clin[thresh/scale] = linthresh/linscale for matplotlib symlognorm")
     print("  save = the file name (including extension) to save the figure to")
     print("  verbose = True/False -- print runtime diagnostic information")
     print("  nrows/ncols number of rows and columns in figure panels")

@@ -221,7 +221,7 @@ IF (yminp.EQ.ymin) THEN
    Ex(:,1:NOZZLE_THICKNESS+1,:)=Ex0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
 
-   IF (BOUNF_FIELD_YMIN.EQ."OPEN") THEN
+   IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
    ! Damp to initial values
    Ex(:,1,:)=Ex0(:,1,:)
    END IF
@@ -469,7 +469,7 @@ DO ix=2,NXP
 DO iy=2,NYP
 ! Ez(ix,iy,:)=Ez(ix,iy,:)+(c*dt/dx)*(By(ix,iy,:)-By(ix-1,iy,:))-&
 !                         (c*dt/dy)*(Bx(ix,iy,:)-Bx(ix,iy-1,:))-4.0*pi*dt*Jz(ix,iy,:)
-Ez(ix,iy,:)=(Ez(ix,iy,:)-Ez0(ix,iy,:))*exp(-sig(ix,iy,:))+Ez0(ix,iy,:)&
+Ez(ix,iy,:)=(Ez(ix,iy,:)-Ez0(ix,iy,:))*exp(-sig(ix,iy,:))+Ez0(ix,iy,:)+&
                         (c*dt/dx)*(By(ix,iy,:)-By(ix-1,iy,:))-&
                         (c*dt/dy)*(Bx(ix,iy,:)-Bx(ix,iy-1,:))-4.0*pi*dt*Jz(ix,iy,:)
 ENDDO
@@ -3439,7 +3439,7 @@ END IF
 
 IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
 IF (x > xpml2) THEN
-  sigx=PML_PFILE((x-xpml2)/(xmax-xpml2))
+  sigx=PML_PROFILE((x-xpml2)/(xmax-xpml2))
 END IF
 END IF
 

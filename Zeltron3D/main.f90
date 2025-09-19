@@ -389,6 +389,18 @@ IF (coords(3) == NPZ-1) THEN
 ENDIF
 
 !=======================================================================
+! PML BOUNDARIES
+!=======================================================================
+xpml2=xmax - xpml2*(xmax-xmin)
+xpml1=xmin + xpml1*(xmax-xmin)
+
+ypml2=ymax - ypml2*(ymax-ymin)
+ypml1=ymin + ypml1*(ymax-ymin)
+
+zpml2=zmax - zpml2*(zmax-zmin)
+zpml1=zmin + zpml1*(zmax-zmin)
+
+!=======================================================================
 ! Set SPATIAL GRID (NODAL AND YEE LATTICE)
 !=======================================================================
 
