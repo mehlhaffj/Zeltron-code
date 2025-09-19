@@ -77,6 +77,7 @@ INTEGER, DIMENSION(MPI_STATUS_SIZE)            :: stat
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx,By,Bz
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex,Ey,Ez
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Jx,Jy,Jz
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP)  :: sig
 DOUBLE PRECISION, DIMENSION(1:NXP)             :: xgp
 DOUBLE PRECISION, DIMENSION(1:NYP)             :: ygp
 DOUBLE PRECISION, DIMENSION(1:NZP)             :: zgp
@@ -97,6 +98,21 @@ yminp=ygp(1)
 ymaxp=ygp(NYP)
 zminp=zgp(1)
 zmaxp=zgp(NZP)
+
+!***********************************************************************
+! Definition of the electric conductivity profile of the PML
+! times dt: sig=sigma_pml*dt
+sig=0d0
+
+DO ix=1,NXP
+DO iy=1,NYP
+DO iz=1,NZP
+
+sig(ix,iy,iz)=SIGMA_PML(xgp(ix),ygp(iy),zgp(iz))
+
+ENDDO
+ENDDO
+ENDDO
 
 !***********************************************************************
 ! Solve Ex at t=t+dt
@@ -121,22 +137,34 @@ ENDIF
 
 DO iy=2,NYP
 DO iz=2,NZP
-Ex(:,iy,iz)=Ex(:,iy,iz)+(c*dt/dy)*(Bz(:,iy,iz)-Bz(:,iy-1,iz))-&
+! Ex(:,iy,iz)=Ex(:,iy,iz)+(c*dt/dy)*(Bz(:,iy,iz)-Bz(:,iy-1,iz))-&
+!                         (c*dt/dz)*(By(:,iy,iz)-By(:,iy,iz-1))-4.0*pi*dt*Jx(:,iy,iz)
+Ex(:,iy,iz)=(Ex(:,iy,iz)-Ex0(:,iy,iz))*exp(-sig(:,iy,iz))+Ex0(:,iy,iz)+&
+                        (c*dt/dy)*(Bz(:,iy,iz)-Bz(:,iy-1,iz))-&
                         (c*dt/dz)*(By(:,iy,iz)-By(:,iy,iz-1))-4.0*pi*dt*Jx(:,iy,iz)
 ENDDO
 ENDDO
 
 DO iz=2,NZP
-Ex(:,1,iz)=Ex(:,1,iz)+(c*dt/dy)*(Bz(:,1,iz)-bufR1(:,iz))-&
+! Ex(:,1,iz)=Ex(:,1,iz)+(c*dt/dy)*(Bz(:,1,iz)-bufR1(:,iz))-&
+!                       (c*dt/dz)*(By(:,1,iz)-By(:,1,iz-1))-4.0*pi*dt*Jx(:,1,iz)
+Ex(:,1,iz)=(Ex(:,1,iz)-Ex0(:,1,iz))*exp(-sig(:,1,iz))+Ex0(:,1,iz)+&
+                      (c*dt/dy)*(Bz(:,1,iz)-bufR1(:,iz))-&
                       (c*dt/dz)*(By(:,1,iz)-By(:,1,iz-1))-4.0*pi*dt*Jx(:,1,iz)
 ENDDO
 
 DO iy=2,NYP
-Ex(:,iy,1)=Ex(:,iy,1)+(c*dt/dy)*(Bz(:,iy,1)-Bz(:,iy-1,1))-&
+! Ex(:,iy,1)=Ex(:,iy,1)+(c*dt/dy)*(Bz(:,iy,1)-Bz(:,iy-1,1))-&
+!                       (c*dt/dz)*(By(:,iy,1)-bufR2(:,iy))-4.0*pi*dt*Jx(:,iy,1)
+Ex(:,iy,1)=(Ex(:,iy,1)-Ex0(:,iy,1))*exp(-sig(:,iy,1))+Ex0(:,iy,1)+&
+                      (c*dt/dy)*(Bz(:,iy,1)-Bz(:,iy-1,1))-&
                       (c*dt/dz)*(By(:,iy,1)-bufR2(:,iy))-4.0*pi*dt*Jx(:,iy,1)
 ENDDO
 
-Ex(:,1,1)=Ex(:,1,1)+(c*dt/dy)*(Bz(:,1,1)-bufR1(:,1))-&
+! Ex(:,1,1)=Ex(:,1,1)+(c*dt/dy)*(Bz(:,1,1)-bufR1(:,1))-&
+!                     (c*dt/dz)*(By(:,1,1)-bufR2(:,1))-4.0*pi*dt*Jx(:,1,1)
+Ex(:,1,1)=(Ex(:,1,1)-Ex0(:,1,1))*exp(-sig(:,1,1))+Ex0(:,1,1)+&
+                    (c*dt/dy)*(Bz(:,1,1)-bufR1(:,1))-&
                     (c*dt/dz)*(By(:,1,1)-bufR2(:,1))-4.0*pi*dt*Jx(:,1,1)
 
 DEALLOCATE(bufS1,bufR1)
@@ -167,6 +195,11 @@ IF (xmaxp.EQ.xmax) THEN
    ! Inside the conductor
    Ex(NXP,:,:)=0.0
    END IF
+
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Ex(NXP,:,:)=Ex0(NXP,:,:)
+   END IF
    
 END IF
 
@@ -187,6 +220,11 @@ IF (yminp.EQ.ymin) THEN
    ! Tangent to nozzle surface
    Ex(:,1:NOZZLE_THICKNESS+1,:)=Ex0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
+
+   IF (BOUNF_FIELD_YMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ex(:,1,:)=Ex0(:,1,:)
+   END IF
    
 END IF
    
@@ -195,6 +233,11 @@ IF (ymaxp.EQ.ymax) THEN
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ex(:,NYP,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ex(:,NYP,:)=Ex0(:,NYP,:)
    END IF
    
 END IF
@@ -210,6 +253,11 @@ IF (zminp.EQ.zmin) THEN
    Ex(:,:,1)=0.0
    END IF
 
+   IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ex(:,:,1)=Ex0(:,:,1) 
+   ENDIF
+
    IF (BOUND_FIELD_ZMIN.EQ."NOZZLE") THEN
    ! ! Parallel to, and inside of, nozzle surface
    ! Ex(:,:,1)=Ex0(:,:,1)
@@ -224,6 +272,11 @@ IF (zmaxp.EQ.zmax) THEN
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ex(:,:,NZP)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ex(:,:,NZP)=Ex0(:,:,NZP)
    END IF
    
 END IF
@@ -251,22 +304,34 @@ ENDIF
 
 DO ix=2,NXP
 DO iz=2,NZP
-Ey(ix,:,iz)=Ey(ix,:,iz)+(c*dt/dz)*(Bx(ix,:,iz)-Bx(ix,:,iz-1))-&
+! Ey(ix,:,iz)=Ey(ix,:,iz)+(c*dt/dz)*(Bx(ix,:,iz)-Bx(ix,:,iz-1))-&
+!                         (c*dt/dx)*(Bz(ix,:,iz)-Bz(ix-1,:,iz))-4.0*pi*dt*Jy(ix,:,iz)
+Ey(ix,:,iz)=(Ey(ix,:,iz)-Ey0(ix,:,iz))*exp(-sig(ix,:,iz))+Ey0(ix,:,iz)+&
+                        (c*dt/dz)*(Bx(ix,:,iz)-Bx(ix,:,iz-1))-&
                         (c*dt/dx)*(Bz(ix,:,iz)-Bz(ix-1,:,iz))-4.0*pi*dt*Jy(ix,:,iz)
 ENDDO
 ENDDO
 
 DO iz=2,NZP
-Ey(1,:,iz)=Ey(1,:,iz)+(c*dt/dz)*(Bx(1,:,iz)-Bx(1,:,iz-1))-&
+! Ey(1,:,iz)=Ey(1,:,iz)+(c*dt/dz)*(Bx(1,:,iz)-Bx(1,:,iz-1))-&
+!                       (c*dt/dx)*(Bz(1,:,iz)-bufR2(:,iz))-4.0*pi*dt*Jy(1,:,iz)
+Ey(1,:,iz)=(Ey(1,:,iz)-Ey0(1,:,iz))*exp(-sig(1,:,iz))+Ey0(1,:,iz)+&
+                      (c*dt/dz)*(Bx(1,:,iz)-Bx(1,:,iz-1))-&
                       (c*dt/dx)*(Bz(1,:,iz)-bufR2(:,iz))-4.0*pi*dt*Jy(1,:,iz)
 ENDDO
 
 DO ix=2,NXP
-Ey(ix,:,1)=Ey(ix,:,1)+(c*dt/dz)*(Bx(ix,:,1)-bufR1(ix,:))-&
+! Ey(ix,:,1)=Ey(ix,:,1)+(c*dt/dz)*(Bx(ix,:,1)-bufR1(ix,:))-&
+!                       (c*dt/dx)*(Bz(ix,:,1)-Bz(ix-1,:,1))-4.0*pi*dt*Jy(ix,:,1)
+Ey(ix,:,1)=(Ey(ix,:,1)-Ey0(ix,:,1))*exp(-sig(ix,:,1))+Ey0(ix,:,1)+&
+                      (c*dt/dz)*(Bx(ix,:,1)-bufR1(ix,:))-&
                       (c*dt/dx)*(Bz(ix,:,1)-Bz(ix-1,:,1))-4.0*pi*dt*Jy(ix,:,1)
 ENDDO
 
-Ey(1,:,1)=Ey(1,:,1)+(c*dt/dz)*(Bx(1,:,1)-bufR1(1,:))-&
+! Ey(1,:,1)=Ey(1,:,1)+(c*dt/dz)*(Bx(1,:,1)-bufR1(1,:))-&
+!                     (c*dt/dx)*(Bz(1,:,1)-bufR2(:,1))-4.0*pi*dt*Jy(1,:,1)
+Ey(1,:,1)=(Ey(1,:,1)-Ey0(1,:,1))*exp(-sig(1,:,1))+Ey0(1,:,1)+&
+                    (c*dt/dz)*(Bx(1,:,1)-bufR1(1,:))-&
                     (c*dt/dx)*(Bz(1,:,1)-bufR2(:,1))-4.0*pi*dt*Jy(1,:,1)
 
 DEALLOCATE(bufS1,bufR1)
@@ -288,6 +353,11 @@ IF (xminp.EQ.xmin) THEN
    ! Ey(1,:,:)=Ey0(1,:,:)
    Ey(1:NOZZLE_THICKNESS+1,:,:)=Ey0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ey(1,:,:)=Ey0(1,:,:)
+   END IF
    
 END IF
    
@@ -296,6 +366,11 @@ IF (xmaxp.EQ.xmax) THEN
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ey(NXP,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ey(NXP,:,:)=Ey0(NXP,:,:)
    END IF
 
 END IF
@@ -323,6 +398,11 @@ IF (ymaxp.EQ.ymax) THEN
    ! Inside the conductor
    Ey(:,NYP,:)=0.0
    END IF
+
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Ey(:,NYP,:)=Ey0(:,NYP,:)
+   END IF
    
 END IF
 
@@ -342,6 +422,11 @@ IF (zminp.EQ.zmin) THEN
    ! Ey(:,:,1)=Ey0(:,:,1)
    Ey(:,:,1:NOZZLE_THICKNESS+1)=Ey0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ey(:,:,1)=Ey0(:,:,1)
+   END IF
    
 END IF
    
@@ -350,6 +435,11 @@ IF (zmaxp.EQ.zmax) THEN
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ey(:,:,NZP)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ey(:,:,NZP)=Ey0(:,:,NZP)
    END IF
 
 END IF
@@ -377,22 +467,34 @@ ENDIF
 
 DO ix=2,NXP
 DO iy=2,NYP
-Ez(ix,iy,:)=Ez(ix,iy,:)+(c*dt/dx)*(By(ix,iy,:)-By(ix-1,iy,:))-&
+! Ez(ix,iy,:)=Ez(ix,iy,:)+(c*dt/dx)*(By(ix,iy,:)-By(ix-1,iy,:))-&
+!                         (c*dt/dy)*(Bx(ix,iy,:)-Bx(ix,iy-1,:))-4.0*pi*dt*Jz(ix,iy,:)
+Ez(ix,iy,:)=(Ez(ix,iy,:)-Ez0(ix,iy,:))*exp(-sig(ix,iy,:))+Ez0(ix,iy,:)&
+                        (c*dt/dx)*(By(ix,iy,:)-By(ix-1,iy,:))-&
                         (c*dt/dy)*(Bx(ix,iy,:)-Bx(ix,iy-1,:))-4.0*pi*dt*Jz(ix,iy,:)
 ENDDO
 ENDDO
 
 DO iy=2,NYP
-Ez(1,iy,:)=Ez(1,iy,:)+(c*dt/dx)*(By(1,iy,:)-bufR2(iy,:))-&
+! Ez(1,iy,:)=Ez(1,iy,:)+(c*dt/dx)*(By(1,iy,:)-bufR2(iy,:))-&
+!                       (c*dt/dy)*(Bx(1,iy,:)-Bx(1,iy-1,:))-4.0*pi*dt*Jz(1,iy,:)
+Ez(1,iy,:)=(Ez(1,iy,:)-Ez0(1,iy,:))*exp(-sig(1,iy,:))+Ez0(1,iy,:)+&
+                      (c*dt/dx)*(By(1,iy,:)-bufR2(iy,:))-&
                       (c*dt/dy)*(Bx(1,iy,:)-Bx(1,iy-1,:))-4.0*pi*dt*Jz(1,iy,:)
 ENDDO
 
 DO ix=2,NXP
-Ez(ix,1,:)=Ez(ix,1,:)+(c*dt/dx)*(By(ix,1,:)-By(ix-1,1,:))-&
+! Ez(ix,1,:)=Ez(ix,1,:)+(c*dt/dx)*(By(ix,1,:)-By(ix-1,1,:))-&
+!                       (c*dt/dy)*(Bx(ix,1,:)-bufR1(ix,:))-4.0*pi*dt*Jz(ix,1,:)
+Ez(ix,1,:)=(Ez(ix,1,:)-Ez0(ix,1,:))*exp(-sig(ix,1,:))+Ez0(ix,1,:)+&
+                      (c*dt/dx)*(By(ix,1,:)-By(ix-1,1,:))-&
                       (c*dt/dy)*(Bx(ix,1,:)-bufR1(ix,:))-4.0*pi*dt*Jz(ix,1,:)
 ENDDO
 
-Ez(1,1,:)=Ez(1,1,:)+(c*dt/dx)*(By(1,1,:)-bufR2(1,:))-&
+! Ez(1,1,:)=Ez(1,1,:)+(c*dt/dx)*(By(1,1,:)-bufR2(1,:))-&
+!                     (c*dt/dy)*(Bx(1,1,:)-bufR1(1,:))-4.0*pi*dt*Jz(1,1,:)
+Ez(1,1,:)=(Ez(1,1,:)-Ez0(1,1,:))*exp(-sig(1,1,:))+Ez0(1,1,:)+&
+                    (c*dt/dx)*(By(1,1,:)-bufR2(1,:))-&
                     (c*dt/dy)*(Bx(1,1,:)-bufR1(1,:))-4.0*pi*dt*Jz(1,1,:)
 
 DEALLOCATE(bufS1,bufR1)
@@ -414,6 +516,11 @@ IF (xminp.EQ.xmin) THEN
    ! Ez(1,:,:)=Ez0(1,:,:)
    Ez(1:NOZZLE_THICKNESS+1,:,:)=Ez0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ez(1,:,:)=Ez0(1,:,:)
+   END IF
       
 END IF
 
@@ -422,6 +529,11 @@ IF (xmaxp.EQ.xmax) THEN
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ez(NXP,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ez(NXP,:,:)=Ez0(NXP,:,:)
    END IF
 
 END IF
@@ -442,6 +554,11 @@ IF (yminp.EQ.ymin) THEN
    ! Ez(:,1,:)=Ez0(:,1,:)
    Ez(:,1:NOZZLE_THICKNESS+1,:)=Ez0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ez(:,1,:)=Ez0(:,1,:)
+   END IF
    
 END IF
 
@@ -450,6 +567,11 @@ IF (ymaxp.EQ.ymax) THEN
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
    ! Tangent to conductor surface
    Ez(:,NYP,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Ez(:,NYP,:)=Ez0(:,NYP,:)
    END IF
 
 END IF
@@ -477,6 +599,11 @@ IF (zmaxp.EQ.zmax) THEN
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
    ! Inside the conductor
    Ez(:,:,NZP)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Ez(:,:,NZP)=Ez0(:,:,NZP) 
    END IF
    
 END IF
@@ -518,6 +645,7 @@ INCLUDE 'mpif.h'
 INTEGER, DIMENSION(MPI_STATUS_SIZE)            :: stat
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx,By,Bz
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex,Ey,Ez
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: sig
 DOUBLE PRECISION, DIMENSION(1:NXP)             :: xgp
 DOUBLE PRECISION, DIMENSION(1:NYP)             :: ygp
 DOUBLE PRECISION, DIMENSION(1:NZP)             :: zgp
@@ -538,6 +666,22 @@ yminp=ygp(1)
 ymaxp=ygp(NYP)
 zminp=zgp(1)
 zmaxp=zgp(NZP)
+
+!***********************************************************************
+! Definition of the electric conductivity profile of the PML
+! times dt: sig=sigma_pml*dt
+
+sig=0d0
+
+DO ix=1,NXP
+DO iy=1,NYP
+DO iz=1,NZP
+
+sig(ix,iy,iz)=SIGMA_PML(xgp(ix),ygp(iy),zgp(iz))
+
+ENDDO
+ENDDO
+ENDDO
 
 !***********************************************************************
 ! Bx
@@ -562,22 +706,34 @@ ENDIF
 
 DO iy=1,NYP-1
 DO iz=1,NZP-1
-Bx(:,iy,iz)=Bx(:,iy,iz)-c*dt/(2.0*dy)*(Ez(:,iy+1,iz)-Ez(:,iy,iz))+&
+! Bx(:,iy,iz)=Bx(:,iy,iz)-c*dt/(2.0*dy)*(Ez(:,iy+1,iz)-Ez(:,iy,iz))+&
+!                         c*dt/(2.0*dz)*(Ey(:,iy,iz+1)-Ey(:,iy,iz))
+Bx(:,iy,iz)=(Bx(:,iy,iz)-Bx0(:,iy,iz))*exp(-sig(:,iy,iz)/2.0)+Bx0(:,iy,iz)-&
+                        c*dt/(2.0*dy)*(Ez(:,iy+1,iz)-Ez(:,iy,iz))+&
                         c*dt/(2.0*dz)*(Ey(:,iy,iz+1)-Ey(:,iy,iz))
 ENDDO
 ENDDO
 
 DO iz=1,NZP-1
-Bx(:,NYP,iz)=Bx(:,NYP,iz)-c*dt/(2.0*dy)*(bufR1(:,iz)-Ez(:,NYP,iz))+&
+! Bx(:,NYP,iz)=Bx(:,NYP,iz)-c*dt/(2.0*dy)*(bufR1(:,iz)-Ez(:,NYP,iz))+&
+!                           c*dt/(2.0*dz)*(Ey(:,NYP,iz+1)-Ey(:,NYP,iz))
+Bx(:,NYP,iz)=(Bx(:,NYP,iz)-Bx0(:,NYP,iz))*exp(-sig(:,NYP,iz)/2.0)+Bx0(:,NYP,iz)-&
+                          c*dt/(2.0*dy)*(bufR1(:,iz)-Ez(:,NYP,iz))+&
                           c*dt/(2.0*dz)*(Ey(:,NYP,iz+1)-Ey(:,NYP,iz))
 ENDDO
 
 DO iy=1,NYP-1
-Bx(:,iy,NZP)=Bx(:,iy,NZP)-c*dt/(2.0*dy)*(Ez(:,iy+1,NZP)-Ez(:,iy,NZP))+&
+! Bx(:,iy,NZP)=Bx(:,iy,NZP)-c*dt/(2.0*dy)*(Ez(:,iy+1,NZP)-Ez(:,iy,NZP))+&
+!                           c*dt/(2.0*dz)*(bufR2(:,iy)-Ey(:,iy,NZP))
+Bx(:,iy,NZP)=(Bx(:,iy,NZP)-Bx0(:,iy,NZP))*exp(-sig(:,iy,NZP)/2.0)+Bx0(:,iy,NZP)-&
+                          c*dt/(2.0*dy)*(Ez(:,iy+1,NZP)-Ez(:,iy,NZP))+&
                           c*dt/(2.0*dz)*(bufR2(:,iy)-Ey(:,iy,NZP))
 ENDDO
 
-Bx(:,NYP,NZP)=Bx(:,NYP,NZP)-c*dt/(2.0*dy)*(bufR1(:,NZP)-Ez(:,NYP,NZP))+&
+! Bx(:,NYP,NZP)=Bx(:,NYP,NZP)-c*dt/(2.0*dy)*(bufR1(:,NZP)-Ez(:,NYP,NZP))+&
+!                             c*dt/(2.0*dz)*(bufR2(:,NYP)-Ey(:,NYP,NZP))
+Bx(:,NYP,NZP)=(Bx(:,NYP,NZP)-Bx0(:,NYP,NZP))*exp(-sig(:,NYP,NZP)/2.0)+Bx0(:,NYP,NZP)-&
+                            c*dt/(2.0*dy)*(bufR1(:,NZP)-Ez(:,NYP,NZP))+&
                             c*dt/(2.0*dz)*(bufR2(:,NYP)-Ey(:,NYP,NZP))
 
 DEALLOCATE(bufS1,bufR1)
@@ -600,6 +756,11 @@ IF (xminp.EQ.xmin) THEN
    ! Normal to nozzle surface
    Bx(1:NOZZLE_THICKNESS+1,:,:)=Bx0(1:NOZZLE_THICKNESS+1,:,:)
    END IF
+
+   IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Bx(1,:,:)=Bx0(1,:,:)
+   END IF
    
 END IF
    
@@ -608,6 +769,11 @@ IF (xmaxp.EQ.xmax) THEN
    IF (BOUND_FIELD_XMAX.EQ."METAL") THEN
    ! Normal to conductor surface
    Bx(NXP,:,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Bx(NXP,:,:)=Bx0(NXP,:,:)
    END IF
 
 END IF
@@ -637,6 +803,11 @@ IF (ymaxp.EQ.ymax) THEN
    Bx(:,NYP,:)=0.0
    END IF
 
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Bx(:,NYP,:)=Bx0(:,NYP,:)
+   END IF
+
 END IF
 
 !***********************************************************************
@@ -664,6 +835,11 @@ IF (zmaxp.EQ.zmax) THEN
    Bx(:,:,NZP)=0.0
    END IF
 
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Bx(:,:,NZP)=Bx0(:,:,NZP)
+   END IF
+
 END IF
 
 !***********************************************************************
@@ -689,22 +865,34 @@ ENDIF
 
 DO ix=1,NXP-1
 DO iz=1,NZP-1
-By(ix,:,iz)=By(ix,:,iz)-c*dt/(2.0*dz)*(Ex(ix,:,iz+1)-Ex(ix,:,iz))+&
+! By(ix,:,iz)=By(ix,:,iz)-c*dt/(2.0*dz)*(Ex(ix,:,iz+1)-Ex(ix,:,iz))+&
+!                         c*dt/(2.0*dx)*(Ez(ix+1,:,iz)-Ez(ix,:,iz))
+By(ix,:,iz)=(By(ix,:,iz)-By0(ix,:,iz))*exp(-sig(ix,:,iz)/2.0)+By0(ix,:,iz)-&
+                        c*dt/(2.0*dz)*(Ex(ix,:,iz+1)-Ex(ix,:,iz))+&
                         c*dt/(2.0*dx)*(Ez(ix+1,:,iz)-Ez(ix,:,iz))
 ENDDO
 ENDDO
 
 DO iz=1,NZP-1
-By(NXP,:,iz)=By(NXP,:,iz)-c*dt/(2.0*dz)*(Ex(NXP,:,iz+1)-Ex(NXP,:,iz))+&
+! By(NXP,:,iz)=By(NXP,:,iz)-c*dt/(2.0*dz)*(Ex(NXP,:,iz+1)-Ex(NXP,:,iz))+&
+!                           c*dt/(2.0*dx)*(bufR2(:,iz)-Ez(NXP,:,iz))
+By(NXP,:,iz)=(By(NXP,:,iz)-By0(NXP,:,iz))*exp(-sig(NXP,:,iz)/2.0)+By0(NXP,:,iz)-&
+                          c*dt/(2.0*dz)*(Ex(NXP,:,iz+1)-Ex(NXP,:,iz))+&
                           c*dt/(2.0*dx)*(bufR2(:,iz)-Ez(NXP,:,iz))
 ENDDO
 
 DO ix=1,NXP-1
-By(ix,:,NZP)=By(ix,:,NZP)-c*dt/(2.0*dz)*(bufR1(ix,:)-Ex(ix,:,NZP))+&
+! By(ix,:,NZP)=By(ix,:,NZP)-c*dt/(2.0*dz)*(bufR1(ix,:)-Ex(ix,:,NZP))+&
+!                           c*dt/(2.0*dx)*(Ez(ix+1,:,NZP)-Ez(ix,:,NZP))
+By(ix,:,NZP)=(By(ix,:,NZP)-By0(ix,:,NZP))*exp(-sig(ix,:,NZP)/2.0)+By0(ix,:,NZP)-&
+                          c*dt/(2.0*dz)*(bufR1(ix,:)-Ex(ix,:,NZP))+&
                           c*dt/(2.0*dx)*(Ez(ix+1,:,NZP)-Ez(ix,:,NZP))
 ENDDO
 
-By(NXP,:,NZP)=By(NXP,:,NZP)-c*dt/(2.0*dz)*(bufR1(NXP,:)-Ex(NXP,:,NZP))+&
+! By(NXP,:,NZP)=By(NXP,:,NZP)-c*dt/(2.0*dz)*(bufR1(NXP,:)-Ex(NXP,:,NZP))+&
+!                             c*dt/(2.0*dx)*(bufR2(:,NZP)-Ez(NXP,:,NZP))
+By(NXP,:,NZP)=(By(NXP,:,NZP)-By0(NXP,:,NZP))*exp(-sig(NXP,:,NZP)/2.0)+By0(NXP,:,NZP)-&
+                            c*dt/(2.0*dz)*(bufR1(NXP,:)-Ex(NXP,:,NZP))+&
                             c*dt/(2.0*dx)*(bufR2(:,NZP)-Ez(NXP,:,NZP))
 
 DEALLOCATE(bufS1,bufR1)
@@ -735,6 +923,11 @@ IF (xmaxp.EQ.xmax) THEN
    By(NXP,:,:)=0.0
    END IF
 
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   By(NXP,:,:)=By0(NXP,:,:)
+   END IF
+
 END IF
    
 !***********************************************************************
@@ -753,6 +946,11 @@ IF (yminp.EQ.ymin) THEN
    ! By(:,1,:)=By0(:,1,:)
    By(:,1:NOZZLE_THICKNESS+1,:)=By0(:,1:NOZZLE_THICKNESS+1,:)
    END IF
+
+   IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   By(:,1,:)=By0(:,1,:)
+   END IF
    
 END IF
 
@@ -761,6 +959,11 @@ IF (ymaxp.EQ.ymax) THEN
    IF (BOUND_FIELD_YMAX.EQ."METAL") THEN
    ! Normal to conductor surface
    By(:,NYP,:)=0.0
+   END IF
+
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   By(:,NYP,:)=By0(:,NYP,:)
    END IF
 
 END IF
@@ -790,6 +993,11 @@ IF (zmaxp.EQ.zmax) THEN
    By(:,:,NZP)=0.0
    END IF
 
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   By(:,:,NZP)=By0(:,:,NZP)
+   END IF
+
 END IF
 
 !***********************************************************************
@@ -815,22 +1023,34 @@ ENDIF
 
 DO ix=1,NXP-1
 DO iy=1,NYP-1
-Bz(ix,iy,:)=Bz(ix,iy,:)-c*dt/(2.0*dx)*(Ey(ix+1,iy,:)-Ey(ix,iy,:))+&
+! Bz(ix,iy,:)=Bz(ix,iy,:)-c*dt/(2.0*dx)*(Ey(ix+1,iy,:)-Ey(ix,iy,:))+&
+!                         c*dt/(2.0*dy)*(Ex(ix,iy+1,:)-Ex(ix,iy,:))
+Bz(ix,iy,:)=(Bz(ix,iy,:)-Bz0(ix,iy,:))*exp(-sig(ix,iy,:)/2.0)+Bz0(ix,iy,:)-&
+                        c*dt/(2.0*dx)*(Ey(ix+1,iy,:)-Ey(ix,iy,:))+&
                         c*dt/(2.0*dy)*(Ex(ix,iy+1,:)-Ex(ix,iy,:))
 ENDDO
 ENDDO
 
 DO iy=1,NYP-1
-Bz(NXP,iy,:)=Bz(NXP,iy,:)-c*dt/(2.0*dx)*(bufR2(iy,:)-Ey(NXP,iy,:))+&
+! Bz(NXP,iy,:)=Bz(NXP,iy,:)-c*dt/(2.0*dx)*(bufR2(iy,:)-Ey(NXP,iy,:))+&
+!                           c*dt/(2.0*dy)*(Ex(NXP,iy+1,:)-Ex(NXP,iy,:))
+Bz(NXP,iy,:)=(Bz(NXP,iy,:)-Bz0(NXP,iy,:))*exp(-sig(NXP,iy,:)/2.0)+Bz0(NXP,iy,:)-&
+                          c*dt/(2.0*dx)*(bufR2(iy,:)-Ey(NXP,iy,:))+&
                           c*dt/(2.0*dy)*(Ex(NXP,iy+1,:)-Ex(NXP,iy,:))
 ENDDO
 
 DO ix=1,NXP-1
-Bz(ix,NYP,:)=Bz(ix,NYP,:)-c*dt/(2.0*dx)*(Ey(ix+1,NYP,:)-Ey(ix,NYP,:))+&
+! Bz(ix,NYP,:)=Bz(ix,NYP,:)-c*dt/(2.0*dx)*(Ey(ix+1,NYP,:)-Ey(ix,NYP,:))+&
+!                           c*dt/(2.0*dy)*(bufR1(ix,:)-Ex(ix,NYP,:))
+Bz(ix,NYP,:)=(Bz(ix,NYP,:)-Bz0(ix,NYP,:))*exp(-sig(ix,NYP,:)/2.0)+Bz0(ix,NYP,:)-&
+                          c*dt/(2.0*dx)*(Ey(ix+1,NYP,:)-Ey(ix,NYP,:))+&
                           c*dt/(2.0*dy)*(bufR1(ix,:)-Ex(ix,NYP,:))
 ENDDO
 
-Bz(NXP,NYP,:)=Bz(NXP,NYP,:)-c*dt/(2.0*dx)*(bufR2(NYP,:)-Ey(NXP,NYP,:))+&
+! Bz(NXP,NYP,:)=Bz(NXP,NYP,:)-c*dt/(2.0*dx)*(bufR2(NYP,:)-Ey(NXP,NYP,:))+&
+!                             c*dt/(2.0*dy)*(bufR1(NXP,:)-Ex(NXP,NYP,:))
+Bz(NXP,NYP,:)=(Bz(NXP,NYP,:)-Bz0(NXP,NYP,:))*exp(-sig(NXP,NYP,:)/2.0)+Bz0(NXP,NYP,:)-&
+                            c*dt/(2.0*dx)*(bufR2(NYP,:)-Ey(NXP,NYP,:))+&
                             c*dt/(2.0*dy)*(bufR1(NXP,:)-Ex(NXP,NYP,:))
 
 DEALLOCATE(bufS1,bufR1)
@@ -861,6 +1081,11 @@ IF (xmaxp.EQ.xmax) THEN
    Bz(NXP,:,:)=0.0
    END IF
 
+   IF (BOUND_FIELD_XMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Bz(NXP,:,:)=Bz0(NXP,:,:)
+   END IF
+
 END IF
    
 !***********************************************************************
@@ -888,6 +1113,11 @@ IF (ymaxp.EQ.ymax) THEN
    Bz(:,NYP,:)=0.0
    END IF
 
+   IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+   ! Damp to initial values outside boundary
+   Bz(:,NYP,:)=Bz0(:,NYP,:)
+   END IF
+
 END IF
 
 !***********************************************************************
@@ -906,6 +1136,11 @@ IF (zminp.EQ.zmin) THEN
    ! Bz(:,:,1)=Bz0(:,:,1)
    Bz(:,:,1:NOZZLE_THICKNESS+1)=Bz0(:,:,1:NOZZLE_THICKNESS+1)
    END IF
+
+   IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+   ! Damp to initial values
+   Bz(:,:,1)=Bz0(:,:,1)
+   END IF
    
 END IF
 
@@ -914,6 +1149,11 @@ IF (zmaxp.EQ.zmax) THEN
    IF (BOUND_FIELD_ZMAX.EQ."METAL") THEN
    ! Normal to conductor surface
    Bz(:,:,NZP)=0.0
+   END IF
+
+   IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+   ! Damp to initial values
+   Bz(:,:,NZP)=Bz0(:,:,NZP)
    END IF
 
 END IF
@@ -2054,6 +2294,53 @@ IF (zmaxp.EQ.zmax) THEN
 
 END IF
 
+!***********************************************************************
+! Check open boundary conditions separately since these must be applied
+! across a volume
+DO ix=1,NXP
+  DO iy=1,NYP
+    DO iz=1,NZP
+      IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+        IF (zgp(iz) < zpml1) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+      IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+        IF (zgp(iz) > zpml2) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+      IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
+        IF (ygp(iy) < ypml1) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+      IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+        IF (ygp(iy) > ypml2) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+      IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+        IF (xgp(ix) < xpml1) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+      IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+        IF (xgp(ix) > xpml2) THEN
+          phif(ix,iy,iz)=0.0
+        END IF
+      END IF
+
+    ENDDO
+  ENDDO
+ENDDO
+
+
 phi0(:,:,:)=phif(:,:,:)
 
 !***********************************************************************
@@ -3095,6 +3382,91 @@ Field_temp(NXP,NYP,NZP)=alpha*(&
 Field(:,:,:)=Field_temp(:,:,:)
 
 END SUBROUTINE FILTER_FIELD
+
+!***********************************************************************
+! Function SIGMA_PML
+! Return sig=sigma_pml*dt at a given position
+!
+! INPUT: 
+! - x,y,z: The position at which to query SIGMA_PML
+!
+! OUTPUT: sig=sigma_pml*dt
+!***********************************************************************
+FUNCTION SIGMA_PML(x,y,z)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION             :: SIGMA_PML
+DOUBLE PRECISION, INTENT(IN) :: x,y,z
+
+DOUBLE PRECISION             :: sigx,sigy,sigz
+
+INTEGER                      :: ix,iy,iz
+
+sigx=0d0
+sigy=0d0
+sigz=0d0
+
+IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+IF (z < zpml1) THEN
+  sigz=PML_PROFILE((zpml1-z)/(zpml1-zmin))
+END IF
+END IF
+
+IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+IF (z > zpml2) THEN
+  sigz=PML_PROFILE((z-zpml2)/(zmax-zpml2))
+END IF
+END IF
+
+IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
+IF (y < ypml1) THEN
+  sigy=PML_PROFILE((ypml1-y)/(ypml1-ymin))
+END IF
+END IF
+
+IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+IF (y > ypml2) THEN
+  sigy=PML_PROFILE((y-ypml2)/(ymax-ypml2))
+END IF
+END IF
+
+IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+IF (x < xpml1) THEN
+  sigx=PML_PROFILE((xpml1-x)/(xpml1-xmin))
+END IF
+END IF
+
+IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+IF (x > xpml2) THEN
+  sigx=PML_PFILE((x-xpml2)/(xmax-xpml2))
+END IF
+END IF
+
+SIGMA_PML=MAX(sigx,sigy,sigz)
+
+END FUNCTION SIGMA_PML
+
+!***********************************************************************
+! Function PML_PROFILE
+! Functional profile of the PML
+!
+! INPUT: 
+! - arg: something like (x-xpml1)/(xpml1-xmin)
+!
+! OUTPUT: pml_profile
+!***********************************************************************
+FUNCTION PML_PROFILE(arg)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION             :: PML_PROFILE
+DOUBLE PRECISION, INTENT(IN) :: arg
+
+PML_PROFILE=0.1*arg*arg*arg
+
+END FUNCTION PML_PROFILE
+
 
 !***********************************************************************
 
