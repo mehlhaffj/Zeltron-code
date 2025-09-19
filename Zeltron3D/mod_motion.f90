@@ -732,6 +732,7 @@ DOUBLE PRECISION, ALLOCATABLE :: pcl(:,:),pcl_inj(:,:)
 DOUBLE PRECISION, ALLOCATABLE :: pcl_data(:,:),pcl_data_inj(:,:)
 INTEGER*8, ALLOCATABLE        :: tag(:),tag_inj(:)
 DOUBLE PRECISION              :: x,y,z,ux,uy,uz,wt
+DOUBLE PRECISION              :: vx,vy,vz,gam,xback,yback,zback,dtfrac
 
 DOUBLE PRECISION, INTENT(IN)  :: n0,speed,theta
 DOUBLE PRECISION, INTENT(IN)  :: xminp,yminp,zminp
@@ -761,7 +762,17 @@ uz=pcl(6,ip)
 wt=pcl(7,ip)
 
 !***********************************************************************
-! Case 1: x>xmax
+! In what follows, we use the method of Lehe et al. 2022 to damp the
+! particle weights as particles cross into the PML. It is discussed in
+! section II.C of their work.
+!
+! When damping weights according to the PML conductivity, we use the
+! particle positions at the same time as the currents would need to be
+! damped, which is one-half timestep behind their current position
+!***********************************************************************
+
+!***********************************************************************
+! Case 1: x>xmax (or x>xpml2)
 !***********************************************************************
 IF (x.GT.xmax) THEN
 
@@ -778,8 +789,28 @@ IF (x.GT.xmax) THEN
    
 END IF
 
+IF (x.GT.xpml2) THEN
+
+   IF (BOUND_PART_XMAX.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((x-dt*vx).LT.xpml2) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(x-xpml2)/(vx*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
+   END IF
+
+END IF
+
 !***********************************************************************
-! Case 2: x<xmin
+! Case 2: x<xmin (or x<xpml1)
 !***********************************************************************
 IF (x.LT.xmin) THEN
 
@@ -803,8 +834,28 @@ IF (x.LT.xmin) THEN
    
 END IF
 
+IF (x.LT.xpml1) THEN
+
+   IF (BOUND_PART_XMIN.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((x-dt*vx).GT.xpml1) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(xpml1-x)/(vx*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
+   END IF
+
+END IF
+
 !***********************************************************************
-! Case 3: y>ymax
+! Case 3: y>ymax (or y>ypml2)
 !***********************************************************************
 IF (y.GT.ymax) THEN
 
@@ -821,8 +872,28 @@ IF (y.GT.ymax) THEN
 
 END IF
 
+IF (y.GT.ypml2) THEN
+
+   IF (BOUND_PART_YMAX.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((y-dt*vy).LT.ypml2) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(y-ypml2)/(vy*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
+   END IF
+
+END IF
+
 !***********************************************************************
-! Case 4: y<ymin
+! Case 4: y<ymin (or y<ypml1)
 !***********************************************************************
 IF (y.LT.ymin) THEN
 
@@ -843,8 +914,28 @@ IF (y.LT.ymin) THEN
 
 END IF
 
+IF (y.LT.ypml1) THEN
+
+   IF (BOUND_PART_YMIN.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((y-dt*vy).GT.ypml1) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(ypml1-y)/(vy*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
+   END IF
+
+END IF
+
 !***********************************************************************
-! Case 5: z>zmax
+! Case 5: z>zmax (or z<zpml2)
 !***********************************************************************
 IF (z.GT.zmax) THEN
 
@@ -861,8 +952,28 @@ IF (z.GT.zmax) THEN
 
 END IF
 
+IF (z.GT.zpml2) THEN
+
+   IF (BOUND_PART_ZMAX.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((z-dt*vz).LT.zpml2) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(z-zpml2)/(vz*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
+   END IF
+
+END IF
+
 !***********************************************************************
-! Case 6: z<zmin
+! Case 6: z<zmin (or z>zpml1)
 !***********************************************************************
 IF (z.LT.zmin) THEN
 
@@ -879,6 +990,26 @@ IF (z.LT.zmin) THEN
 
    IF (BOUND_PART_ZMIN.EQ."INJECT") THEN
    wt=0d0
+   END IF
+
+END IF
+
+IF (z.LT.zpml1) THEN
+
+   IF (BOUND_PART_ZMIN.EQ."ABSORB") THEN
+     gam = SQRT(1.0 + ux*ux + uy*uy + uz*uz)
+     vx = c*ux/gam
+     vy = c*uy/gam
+     vz = c*uz/gam
+     xback = x-0.5*dt*vx
+     yback = y-0.5*dt*vy
+     zback = z-0.5*dt*vz
+     dtfrac=1.0
+     IF ((z-dt*vz).GT.zpml1) THEN
+       ! Some particles will not have spent the full timestep in the PML
+       dtfrac=(zpml1-z)/(vz*dt)
+     END IF
+     wt=wt*EXP(-dtfrac*SIGMA_PML(xback,yback,zback))
    END IF
 
 END IF

@@ -139,8 +139,8 @@ DOUBLE PRECISION, PARAMETER, PUBLIC :: mass_ratio=1d0
 ! Spatial boundaries in the X-direction
 ! _stat quantities can be used to set other PARAMETERS in this input file
 ! xpml_stat is the fraction of xmax-xmin that will be used for the x-pml
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin_stat=-16d0
-DOUBLE PRECISION, PARAMETER, PUBLIC :: xmax_stat=16d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmin_stat=-32d0
+DOUBLE PRECISION, PARAMETER, PUBLIC :: xmax_stat=32d0
 DOUBLE PRECISION, PARAMETER, PUBLIC :: xpml_stat=0.1
 DOUBLE PRECISION, PUBLIC            :: xmin=xmin_stat
 DOUBLE PRECISION, PUBLIC            :: xmax=xmax_stat
@@ -389,15 +389,28 @@ DOUBLE PRECISION, ALLOCATABLE, PUBLIC :: pcl_data_f(:,:)
 INTEGER*8, ALLOCATABLE, PUBLIC        :: tagf(:)
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++ INITIAL FIELD ARRAYS ++++++++++++++++++++++++
+!+++++++++++++++++++++++ STORAGE FIELD ARRAYS ++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-! INITIAL Magnetic and Electric fields components Yee lattice
+! Below, the NOZZLE fields are applied at the boundary if the NOZZLE
+! boundary condition is active.
+! The INITIAL fields are the ones the PML damps to if the OPEN boundary
+! condition is active.
+
+! NOZZLE Magnetic and Electric fields components Yee lattice
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx0,By0,Bz0
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex0,Ey0,Ez0
 
-! INITIAL Magnetic and Electric fields components at nodes
+! NOZZLE Magnetic and Electric fields components at nodes
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bxg0,Byg0,Bzg0
 DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Exg0,Eyg0,Ezg0
+
+! INITIAL Magnetic and Electric fields components Yee lattice
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bx00,By00,Bz00
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Ex00,Ey00,Ez00
+
+! INITIAL Magnetic and Electric fields components at nodes
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Bxg00,Byg00,Bzg00
+DOUBLE PRECISION, DIMENSION(1:NXP,1:NYP,1:NZP) :: Exg00,Eyg00,Ezg00
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++ ANALYSIS ++++++++++++++++++++++++++++++

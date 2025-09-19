@@ -39,6 +39,9 @@ PUBLIC :: GEN_PS ! Generates particle perpendicular momentum
 PUBLIC :: INIT_RANDOM_SEED ! Avoid repeating series of random numbers
 PUBLIC :: INJ_DRIFT_MAXWELLIAN ! Inject drifting Maxwellian from simulation boundary
 
+PUBLIC :: SIGMA_PML ! The PML conductivity as a function of space
+PUBLIC :: PML_PROFILE ! The 1D PML conductivity profile
+
  CONTAINS
 
 !***********************************************************************
@@ -789,6 +792,20 @@ Ezg0(ix,iy,iz) = Ezg0(ix,iy,iz)*rot_shutoff_factor
 Jx(ix,iy,iz) = 0.0
 Jy(ix,iy,iz) = 0.0
 Jz(ix,iy,iz) = 0.0
+
+! Save initial fields for potential PML damping
+Ex00(ix,iy,iz) =Ex(ix,iy,iz)
+Ey00(ix,iy,iz) =Ey(ix,iy,iz)
+Ez00(ix,iy,iz) =Ez(ix,iy,iz)
+Bx00(ix,iy,iz) =Bx(ix,iy,iz)
+By00(ix,iy,iz) =By(ix,iy,iz)
+Bz00(ix,iy,iz) =Bz(ix,iy,iz)
+Exg00(ix,iy,iz)=0.0
+Eyg00(ix,iy,iz)=0.0
+Ezg00(ix,iy,iz)=0.0
+Bxg00(ix,iy,iz)=Bxg0(ix,iy,iz)
+Byg00(ix,iy,iz)=Byg0(ix,iy,iz)
+Bzg00(ix,iy,iz)=Bzg0(ix,iy,iz)
 
 ENDDO
 ENDDO
@@ -1978,6 +1995,90 @@ DEALLOCATE(seed)
 ENDIF
 
 END SUBROUTINE INIT_RANDOM_SEED
+
+!***********************************************************************
+! Function SIGMA_PML
+! Return sig=sigma_pml*dt at a given position
+!
+! INPUT: 
+! - x,y,z: The position at which to query SIGMA_PML
+!
+! OUTPUT: sig=sigma_pml*dt
+!***********************************************************************
+FUNCTION SIGMA_PML(x,y,z)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION             :: SIGMA_PML
+DOUBLE PRECISION, INTENT(IN) :: x,y,z
+
+DOUBLE PRECISION             :: sigx,sigy,sigz
+
+INTEGER                      :: ix,iy,iz
+
+sigx=0d0
+sigy=0d0
+sigz=0d0
+
+IF (BOUND_FIELD_ZMIN.EQ."OPEN") THEN
+IF (z < zpml1) THEN
+  sigz=PML_PROFILE((zpml1-z)/(zpml1-zmin))
+END IF
+END IF
+
+IF (BOUND_FIELD_ZMAX.EQ."OPEN") THEN
+IF (z > zpml2) THEN
+  sigz=PML_PROFILE((z-zpml2)/(zmax-zpml2))
+END IF
+END IF
+
+IF (BOUND_FIELD_YMIN.EQ."OPEN") THEN
+IF (y < ypml1) THEN
+  sigy=PML_PROFILE((ypml1-y)/(ypml1-ymin))
+END IF
+END IF
+
+IF (BOUND_FIELD_YMAX.EQ."OPEN") THEN
+IF (y > ypml2) THEN
+  sigy=PML_PROFILE((y-ypml2)/(ymax-ypml2))
+END IF
+END IF
+
+IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+IF (x < xpml1) THEN
+  sigx=PML_PROFILE((xpml1-x)/(xpml1-xmin))
+END IF
+END IF
+
+IF (BOUND_FIELD_XMIN.EQ."OPEN") THEN
+IF (x > xpml2) THEN
+  sigx=PML_PROFILE((x-xpml2)/(xmax-xpml2))
+END IF
+END IF
+
+SIGMA_PML=MAX(sigx,sigy,sigz)
+
+END FUNCTION SIGMA_PML
+
+!***********************************************************************
+! Function PML_PROFILE
+! Functional profile of the PML
+!
+! INPUT: 
+! - arg: something like (x-xpml1)/(xpml1-xmin)
+!
+! OUTPUT: pml_profile
+!***********************************************************************
+FUNCTION PML_PROFILE(arg)
+
+IMPLICIT NONE
+
+DOUBLE PRECISION             :: PML_PROFILE
+DOUBLE PRECISION, INTENT(IN) :: arg
+
+PML_PROFILE=0.1*arg*arg*arg
+
+END FUNCTION PML_PROFILE
 
 !***********************************************************************
 
